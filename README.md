@@ -54,7 +54,7 @@ tamperproof runs in two stages.
 ## Demo
 
 ```bash
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 python demo/build_demo_repo.py demo_repo
 python -m tamperproof demo_repo --base main --head agent/honest
 python -m tamperproof demo_repo --base main --head agent/cheat --sarif cheat.sarif --md cheat.md
