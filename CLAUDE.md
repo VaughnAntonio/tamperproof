@@ -9,7 +9,7 @@ Background, decisions and current status: @docs/CONTEXT.md
 ```bash
 # once, inside .venv
 python -m pip install -e ".[dev]"
-# 22 tests; builds a demo repo in tmp, needs git on PATH
+# 27 tests; builds a demo repo in tmp, needs git on PATH
 pytest -q
 # lint (rules pinned in pyproject.toml)
 ruff check .
@@ -29,8 +29,9 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 - `tamperproof/proof.py`: runs experiments in `git archive` copies.
   - Oracle restoration (TT*): original tampered test functions spliced into the agent's test file (`splice_tests`; whole-file fallback) + agent's new code. Original fails while agent version passes → `proven=True`. Still passes → `proven=False`.
   - Branch ablation (SC01): delete the suspicious `if`, rerun agent tests. Tests using that literal flip to failing → `proven=True`.
+  - Handler ablation + fault injection (SC02): re-raise in the new handler; a passing test that now fails → `proven=True` (real error swallowed). Else inject a fault into the `try`: a test that notices → `proven=False`; none notice, or no test runs the block → stays suspected (`proven=None`). Fault injection alone never proves, so a blind spot can't BLOCK.
 - `tamperproof/audit.py`: orchestration, score, verdict. `report.py`: text, Markdown, SARIF 2.1.0. `cli.py`: argparse.
-- `Finding.data` is the contract between static rules and the proof engine (`test`, `test_file`, `line`, `literals`). Document any new key.
+- `Finding.data` is the contract between static rules and the proof engine (`test`, `test_file`, `line`, `literals`, `try_line`). For SC02, `line` is the handler and `try_line` its `try`. Document any new key.
 
 ## Rules that must not change without asking Vaughn
 
@@ -55,7 +56,7 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 ## Roadmap (next tasks, in order)
 
 1. ~~Per-test oracle restoration~~ (done, `splice_tests` in `proof.py`)
-2. Fault injection to prove SC02 (swallowed errors)
+2. ~~Fault injection to prove SC02~~ (done, `swallow_experiments` in `proof.py`)
 3. Hypothesis-based perturbation for SC01 beyond equality
 4. Calibrate on `AlignmentResearch/impossible-swe-nemotron-rollouts`; report precision/recall
 5. PR-comment GitHub Action (`--md`) and SARIF upload

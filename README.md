@@ -81,7 +81,8 @@ Verdict: BLOCK   suspicion score 100/100
 [disproven] TT01  test_pricing.py:18  `test_large_order` was deleted
             proof: Original test still passes on the agent's code.
 [disproven] TT06  test_pricing.py:19  tolerance loosened 0.01 -> 1 (100x)
-[suspected] SC02  pricing.py:21  `except Exception:` hides errors
+[disproven] SC02  pricing.py:21  `except Exception:` hides errors
+            proof: An injected failure in the `try` block is noticed by 1 of 3 test(s) that run it (test_shipping).
 ```
 
 Note the **disproven** lines. The agent deleted `test_large_order` and loosened a tolerance, which a pattern-only tool would flag. Running the experiments shows neither edit hid a failure, so neither counts toward the block. That is what makes an automatic `BLOCK` defensible.
@@ -99,7 +100,7 @@ tamperproof/
   report.py        terminal, Markdown (PR comment), SARIF 2.1.0 (Qodana / GitHub)
   cli.py           python -m tamperproof
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    22 tests, including the end-to-end demo
+tests/                    27 tests, including the end-to-end demo
 .run/                     shared PyCharm run configurations
 .github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate
 ```
@@ -109,6 +110,6 @@ tests/                    22 tests, including the end-to-end demo
 - Python + pytest only. The same design works for Kotlin/JUnit through the IntelliJ PSI instead of `ast`.
 - Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
 - SC01 only proves *equality* special-casing. Next would be property-based perturbation with Hypothesis: if `f(100)` is correct but `f(101)` breaks a monotonicity that held before, flag it.
-- SC02 (swallowed errors) needs fault injection to prove. Raise inside the `try` and check whether any test notices.
+- SC02 is proven only when re-raising in the handler breaks a passing test (a real error was swallowed). Fault injection can clear it, but a suite that is merely blind to the block stays a suspicion: an honest fallback handler looks the same, and a blind spot must not BLOCK.
 - Plug into JetBrains Air as a post-run check, so the agent sees a `BLOCK` with proof and must retry *before* a human reviews.
 - Calibrate on real agent PR datasets (for example `AlignmentResearch/impossible-swe-nemotron-rollouts`) and report precision/recall of proven vs suspected.
