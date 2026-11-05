@@ -99,7 +99,7 @@ tamperproof/
   report.py        terminal, Markdown (PR comment), SARIF 2.1.0 (Qodana / GitHub)
   cli.py           python -m tamperproof
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    16 tests, including the end-to-end demo
+tests/                    22 tests, including the end-to-end demo
 .run/                     shared PyCharm run configurations
 .github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate
 ```
