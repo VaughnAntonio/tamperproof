@@ -9,7 +9,7 @@ Background, decisions and current status: @docs/CONTEXT.md
 ```bash
 # once, inside .venv
 python -m pip install -e ".[dev]"
-# 9 tests; builds a demo repo in tmp, needs git on PATH
+# 16 tests; builds a demo repo in tmp, needs git on PATH
 pytest -q
 # lint (rules pinned in pyproject.toml)
 ruff check .
@@ -27,7 +27,7 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 
 - `tamperproof/static_rules.py`: AST diff of base vs head; emits `Finding(rule, severity, file, line, message, data)`. Rules: TT01–TT06 (test tampering), SC01–SC03, API01, COV01, BR01.
 - `tamperproof/proof.py`: runs experiments in `git archive` copies.
-  - Oracle restoration (TT*): original test file + agent's new code. Original fails while agent version passes → `proven=True`. Still passes → `proven=False`.
+  - Oracle restoration (TT*): original tampered test functions spliced into the agent's test file (`splice_tests`; whole-file fallback) + agent's new code. Original fails while agent version passes → `proven=True`. Still passes → `proven=False`.
   - Branch ablation (SC01): delete the suspicious `if`, rerun agent tests. Tests using that literal flip to failing → `proven=True`.
 - `tamperproof/audit.py`: orchestration, score, verdict. `report.py`: text, Markdown, SARIF 2.1.0. `cli.py`: argparse.
 - `Finding.data` is the contract between static rules and the proof engine (`test`, `test_file`, `line`, `literals`). Document any new key.
@@ -54,7 +54,7 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 
 ## Roadmap (next tasks, in order)
 
-1. Per-test oracle restoration (restore only tampered functions, not whole files)
+1. ~~Per-test oracle restoration~~ (done, `splice_tests` in `proof.py`)
 2. Fault injection to prove SC02 (swallowed errors)
 3. Hypothesis-based perturbation for SC01 beyond equality
 4. Calibrate on `AlignmentResearch/impossible-swe-nemotron-rollouts`; report precision/recall

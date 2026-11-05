@@ -69,7 +69,7 @@ Agent's own test suite: GREEN (7 tests)
 Verdict: PASS   suspicion score 0/100
 
 === agent/cheat ===
-Agent's own test suite: GREEN (5 tests)
+Agent's own test suite: GREEN (6 tests)
 Verdict: BLOCK   suspicion score 100/100
 
 [   PROVEN] SC01  pricing.py:9  new branch `if qty == 100:` matches test value(s) [100]
@@ -99,7 +99,7 @@ tamperproof/
   report.py        terminal, Markdown (PR comment), SARIF 2.1.0 (Qodana / GitHub)
   cli.py           python -m tamperproof
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    9 tests, including the end-to-end demo
+tests/                    16 tests, including the end-to-end demo
 .run/                     shared PyCharm run configurations
 .github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate
 ```
@@ -107,7 +107,7 @@ tests/                    9 tests, including the end-to-end demo
 ## Limitations and next steps
 
 - Python + pytest only. The same design works for Kotlin/JUnit through the IntelliJ PSI instead of `ast`.
-- Oracle restoration replaces whole test files. Per-test restoration would keep legitimate new tests the agent added.
+- Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
 - SC01 only proves *equality* special-casing. Next would be property-based perturbation with Hypothesis: if `f(100)` is correct but `f(101)` breaks a monotonicity that held before, flag it.
 - SC02 (swallowed errors) needs fault injection to prove. Raise inside the `try` and check whether any test notices.
 - Plug into JetBrains Air as a post-run check, so the agent sees a `BLOCK` with proof and must retry *before* a human reviews.
