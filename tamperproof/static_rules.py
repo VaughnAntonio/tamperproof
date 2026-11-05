@@ -208,18 +208,24 @@ def _branch_tests(tree: ast.Module | None) -> set[str]:
     return {ast.unparse(n.test) for n in ast.walk(tree) if isinstance(n, (ast.If, ast.IfExp))}
 
 
-def _swallowing_handlers(tree: ast.Module | None) -> list[ast.ExceptHandler]:
+def _swallowing_handlers(tree: ast.Module | None) -> list[tuple[ast.Try, ast.ExceptHandler]]:
+    """(try, handler) pairs for broad handlers that drop the error silently.
+
+    The enclosing `try` is returned too: the SC02 proof experiments edit both.
+    """
     out = []
     if tree is None:
         return out
-    for n in ast.walk(tree):
-        if isinstance(n, ast.ExceptHandler):
+    for t in ast.walk(tree):
+        if not isinstance(t, (ast.Try, ast.TryStar)):
+            continue
+        for n in t.handlers:
             broad = n.type is None or ast.unparse(n.type) in ("Exception", "BaseException")
             quiet = all(isinstance(s, (ast.Pass, ast.Continue)) or
                         (isinstance(s, ast.Return) and (s.value is None or isinstance(s.value, ast.Constant)))
                         for s in n.body)
             if broad and quiet:
-                out.append(n)
+                out.append((t, n))
     return out
 
 
@@ -249,11 +255,12 @@ def diff_source(path: str, before: str | None, after: str | None, lits: set) -> 
                                        {"line": n.lineno, "literals": hits}))
                     break
 
-    old_h = {ast.unparse(h) for h in _swallowing_handlers(t_old)}
-    for h in _swallowing_handlers(t_new):
+    old_h = {ast.unparse(h) for _, h in _swallowing_handlers(t_old)}
+    for t, h in _swallowing_handlers(t_new):
         if ast.unparse(h) not in old_h:
             out.append(Finding("SC02", "medium", path, h.lineno,
-                               f"`{ast.unparse(h).splitlines()[0]}` hides errors"))
+                               f"`{ast.unparse(h).splitlines()[0]}` hides errors",
+                               {"line": h.lineno, "try_line": t.lineno}))
 
     old_count = len(SUPPRESS.findall(before or ""))
     new_lines = [(i, ln) for i, ln in enumerate((after or "").splitlines(), 1) if SUPPRESS.search(ln)]
