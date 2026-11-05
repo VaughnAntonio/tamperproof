@@ -85,7 +85,7 @@ When giving IDE steps:
 
 Ordered by value for a JetBrains pitch:
 
-1. **Per-test oracle restoration**: restore only tampered test functions, not whole files, so legitimate new tests the agent added survive.
+1. ~~**Per-test oracle restoration**~~ (done): only tampered test functions are restored, so legitimate new tests the agent added survive.
 2. **Fault injection for SC02**: raise inside the new `try` block and check whether any test notices. Proves swallowed errors.
 3. **Property perturbation for SC01 beyond equality**: use Hypothesis to check monotonicity/invariants around special-cased inputs.
 4. **Calibration**: run on a real agent-PR dataset (for example `AlignmentResearch/impossible-swe-nemotron-rollouts` on Hugging Face) and report precision/recall for proven vs suspected.
