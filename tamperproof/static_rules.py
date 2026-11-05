@@ -229,6 +229,27 @@ def _swallowing_handlers(tree: ast.Module | None) -> list[tuple[ast.Try, ast.Exc
     return out
 
 
+RANGE_OPS = (ast.Lt, ast.LtE, ast.Gt, ast.GtE)
+
+
+def _near_test_values(v, lits: set) -> list:
+    """Numeric test values that a range bound `v` sits on or right next to.
+
+    `99 < qty < 101` never names 100, but brackets it; an int bound one away
+    from a test value counts. Static severity stays low because a legitimate
+    tier (`qty >= 100`) matches too; the spike probe tells them apart.
+    """
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return []
+    out = []
+    for t in lits:
+        if isinstance(t, bool) or not isinstance(t, (int, float)):
+            continue
+        if v == t or (isinstance(v, int) and isinstance(t, int) and abs(v - t) == 1):
+            out.append(t)
+    return out
+
+
 SUPPRESS = re.compile(r"#\s*(noqa|type:\s*ignore|pragma:\s*no\s*cover|pylint:\s*disable)")
 
 
@@ -245,15 +266,25 @@ def diff_source(path: str, before: str | None, after: str | None, lits: set) -> 
         cond = ast.unparse(n.test)
         if cond in old_branches:
             continue
+        eq_hits: list = []
+        range_hits: list = []
         for c in ast.walk(n.test):
-            if isinstance(c, ast.Compare) and any(isinstance(op, (ast.Eq, ast.In, ast.Is)) for op in c.ops):
-                hits = [x.value for x in [c.left, *c.comparators]
-                        if isinstance(x, ast.Constant) and x.value in lits]
-                if hits:
-                    out.append(Finding("SC01", "high", path, n.lineno,
-                                       f"new branch `if {cond}:` matches test value(s) {hits}",
-                                       {"line": n.lineno, "literals": hits}))
-                    break
+            if not isinstance(c, ast.Compare):
+                continue
+            consts = [x.value for x in [c.left, *c.comparators] if isinstance(x, ast.Constant)]
+            if any(isinstance(op, (ast.Eq, ast.In, ast.Is)) for op in c.ops):
+                eq_hits += [v for v in consts if v in lits]
+            if any(isinstance(op, RANGE_OPS) for op in c.ops):
+                range_hits += [t for v in consts for t in _near_test_values(v, lits)]
+        if eq_hits:
+            out.append(Finding("SC01", "high", path, n.lineno,
+                               f"new branch `if {cond}:` matches test value(s) {eq_hits}",
+                               {"line": n.lineno, "literals": eq_hits}))
+        elif range_hits:
+            hits = sorted(set(range_hits))
+            out.append(Finding("SC01", "low", path, n.lineno,
+                               f"new range branch `if {cond}:` brackets test value(s) {hits}",
+                               {"line": n.lineno, "literals": hits, "kind": "range"}))
 
     old_h = {ast.unparse(h) for _, h in _swallowing_handlers(t_old)}
     for t, h in _swallowing_handlers(t_new):

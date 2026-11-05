@@ -42,6 +42,7 @@ tamperproof runs in two stages.
 
 - **Oracle restoration** (TT rules). Put the *original* test file next to the agent's *new* code and run it. If a test the agent skipped, deleted or weakened now **fails**, the edit hid a real failure. That is **proven**. If it still passes, the suspicion is **disproven** and its score drops to zero.
 - **Branch ablation** (SC01). Delete the suspicious `if` from the agent's code and rerun the agent's own tests. If previously passing tests that use that literal now fail, the branch exists only to satisfy test inputs. That is **proven**.
+- **Spike probe** (SC01, range branches such as `if 99 < qty < 101:`). Call the function at the test input and its neighbours, with and without the branch. Output that changes only at the test input is an isolated spike: **proven**. A change that also reaches a neighbour is a real tier: **disproven**.
 
 **Verdict.** Only proven findings can `BLOCK`. Static suspicion alone can at most ask for `REVIEW`. False alarms are actively *disproven* rather than left for a human.
 
@@ -100,7 +101,7 @@ tamperproof/
   report.py        terminal, Markdown (PR comment), SARIF 2.1.0 (Qodana / GitHub)
   cli.py           python -m tamperproof
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    27 tests, including the end-to-end demo
+tests/                    34 tests, including the end-to-end demo
 .run/                     shared PyCharm run configurations
 .github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate
 ```
@@ -109,7 +110,7 @@ tests/                    27 tests, including the end-to-end demo
 
 - Python + pytest only. The same design works for Kotlin/JUnit through the IntelliJ PSI instead of `ast`.
 - Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
-- SC01 only proves *equality* special-casing. Next would be property-based perturbation with Hypothesis: if `f(100)` is correct but `f(101)` breaks a monotonicity that held before, flag it.
+- SC01 covers equality and range branches on numeric inputs. The spike probe needs a test that calls the function with the value as a plain literal, and only probes module-level functions; special-casing via dict lookups or string matching isn't covered.
 - SC02 is proven only when re-raising in the handler breaks a passing test (a real error was swallowed). Fault injection can clear it, but a suite that is merely blind to the block stays a suspicion: an honest fallback handler looks the same, and a blind spot must not BLOCK.
 - Plug into JetBrains Air as a post-run check, so the agent sees a `BLOCK` with proof and must retry *before* a human reviews.
 - Calibrate on real agent PR datasets (for example `AlignmentResearch/impossible-swe-nemotron-rollouts`) and report precision/recall of proven vs suspected.

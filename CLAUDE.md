@@ -9,7 +9,7 @@ Background, decisions and current status: @docs/CONTEXT.md
 ```bash
 # once, inside .venv
 python -m pip install -e ".[dev]"
-# 27 tests; builds a demo repo in tmp, needs git on PATH
+# 34 tests; builds a demo repo in tmp, needs git on PATH
 pytest -q
 # lint (rules pinned in pyproject.toml)
 ruff check .
@@ -28,10 +28,11 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 - `tamperproof/static_rules.py`: AST diff of base vs head; emits `Finding(rule, severity, file, line, message, data)`. Rules: TT01–TT06 (test tampering), SC01–SC03, API01, COV01, BR01.
 - `tamperproof/proof.py`: runs experiments in `git archive` copies.
   - Oracle restoration (TT*): original tampered test functions spliced into the agent's test file (`splice_tests`; whole-file fallback) + agent's new code. Original fails while agent version passes → `proven=True`. Still passes → `proven=False`.
-  - Branch ablation (SC01): delete the suspicious `if`, rerun agent tests. Tests using that literal flip to failing → `proven=True`.
+  - Branch ablation (SC01 equality): delete the suspicious `if`, rerun agent tests. Tests using that literal flip to failing → `proven=True`.
+  - Spike probe (SC01 `kind: range`, severity low): call the function at each literal test input and its neighbours, with and without the branch. Differs only at the test input → `proven=True`; differs at a neighbour → `proven=False` (real tier); no literal call → stays suspected. Stdlib only, deterministic.
   - Handler ablation + fault injection (SC02): re-raise in the new handler; a passing test that now fails → `proven=True` (real error swallowed). Else inject a fault into the `try`: a test that notices → `proven=False`; none notice, or no test runs the block → stays suspected (`proven=None`). Fault injection alone never proves, so a blind spot can't BLOCK.
 - `tamperproof/audit.py`: orchestration, score, verdict. `report.py`: text, Markdown, SARIF 2.1.0. `cli.py`: argparse.
-- `Finding.data` is the contract between static rules and the proof engine (`test`, `test_file`, `line`, `literals`, `try_line`). For SC02, `line` is the handler and `try_line` its `try`. Document any new key.
+- `Finding.data` is the contract between static rules and the proof engine (`test`, `test_file`, `line`, `literals`, `try_line`, `kind`). For SC02, `line` is the handler and `try_line` its `try`. For SC01, `kind: "range"` marks a `<`/`<=`/`>`/`>=` branch (absent for equality). Document any new key.
 
 ## Rules that must not change without asking Vaughn
 
@@ -57,7 +58,7 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 
 1. ~~Per-test oracle restoration~~ (done, `splice_tests` in `proof.py`)
 2. ~~Fault injection to prove SC02~~ (done, `swallow_experiments` in `proof.py`)
-3. Hypothesis-based perturbation for SC01 beyond equality
+3. ~~Perturbation for SC01 beyond equality~~ (done, stdlib `spike_probe` in `proof.py`; Hypothesis not needed)
 4. Calibrate on `AlignmentResearch/impossible-swe-nemotron-rollouts`; report precision/recall
 5. PR-comment GitHub Action (`--md`) and SARIF upload
 6. Qodana integration notes
