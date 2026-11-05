@@ -43,6 +43,7 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
 
 - v0.1.0 done: 9 tests passing, ruff clean, CI workflow (lint, Python 3.11–3.13, demo gate), 4 shared PyCharm run configs, setup guide, Claude Project instructions.
 - Per-test oracle restoration done (`splice_tests`): 16 tests passing; the demo cheat branch now adds one legitimate test that the oracle run keeps.
+- Test-id matching made exact (`.` boundary, parametrized ids, file and class respected): 22 tests passing.
 - Tested on Linux only so far. Next: confirm on Vaughn's machine in PyCharm.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 

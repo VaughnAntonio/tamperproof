@@ -9,7 +9,7 @@ Background, decisions and current status: @docs/CONTEXT.md
 ```bash
 # once, inside .venv
 python -m pip install -e ".[dev]"
-# 16 tests; builds a demo repo in tmp, needs git on PATH
+# 22 tests; builds a demo repo in tmp, needs git on PATH
 pytest -q
 # lint (rules pinned in pyproject.toml)
 ruff check .
