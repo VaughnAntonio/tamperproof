@@ -66,7 +66,7 @@ def audit(repo: str, base: str, head: str = "HEAD", run_proofs: bool = True) -> 
             findings += coverage_and_blast(path, changed_functions(before, after), test_text, head_sources)
 
     agent_tests: dict[str, str] = {}
-    if run_proofs and any(f.rule.startswith(("TT", "SC01")) for f in findings):
+    if run_proofs and any(f.rule.startswith(("TT", "SC01", "SC02")) for f in findings):
         agent_tests = proof.prove(repo, base, head, findings, head_tests)
     elif run_proofs:
         import tempfile

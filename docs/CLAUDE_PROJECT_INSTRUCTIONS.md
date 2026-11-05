@@ -19,8 +19,9 @@ Two stages:
    - Test-side: `TT01` test deleted, `TT02` assertions removed, `TT03` newly skipped/xfail, `TT04` trivially true assertion, `TT05` expected value changed, `TT06` `approx` tolerance loosened.
    - Source-side: `SC01` new branch comparing input to a literal used in tests, `SC02` broad except that swallows errors, `SC03` new lint/type suppression, `API01` public signature changed, `COV01` changed function no test calls, `BR01` blast radius.
 2. **Proof engine** (`tamperproof/proof.py`), run in throw-away copies made with `git archive`:
-   - **Oracle restoration** for `TT*`: put the base version of each tampered test file next to the agent's new source and run pytest. Original fails while the agent's version passes means `proven=True`. Original still passes means `proven=False` (disproven).
+   - **Oracle restoration** for `TT*`: splice the base version of each tampered test function into the agent's test file, next to the agent's new source, and run pytest. Original fails while the agent's version passes means `proven=True`. Original still passes means `proven=False` (disproven).
    - **Branch ablation** for `SC01`: remove the suspicious `if` and rerun the agent's tests. Passing tests that use that literal now failing means `proven=True`.
+   - **Handler ablation + fault injection** for `SC02`: re-raise in the new handler; a passing test now failing means `proven=True`. Otherwise inject a fault into the `try`: a test noticing means `proven=False`; nobody noticing stays suspected (fault injection alone never proves).
 
 **Verdict rule (do not change without discussion):** only a proven finding can produce `BLOCK`. Static suspicion alone can at most give `REVIEW` (score ≥ 15). Disproven findings add 0 to the score. Exit codes: `0` PASS, `1` REVIEW, `2` BLOCK.
 
@@ -86,7 +87,7 @@ When giving IDE steps:
 Ordered by value for a JetBrains pitch:
 
 1. ~~**Per-test oracle restoration**~~ (done): only tampered test functions are restored, so legitimate new tests the agent added survive.
-2. **Fault injection for SC02**: raise inside the new `try` block and check whether any test notices. Proves swallowed errors.
+2. ~~**Fault injection for SC02**~~ (done): only a real swallowed error proves SC02; fault injection can clear it or leave it suspected.
 3. **Property perturbation for SC01 beyond equality**: use Hypothesis to check monotonicity/invariants around special-cased inputs.
 4. **Calibration**: run on a real agent-PR dataset (for example `AlignmentResearch/impossible-swe-nemotron-rollouts` on Hugging Face) and report precision/recall for proven vs suspected.
 5. **GitHub Action / PR comment**: post `--md` output on pull requests; upload SARIF to code scanning on public repos.
