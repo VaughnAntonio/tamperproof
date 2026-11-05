@@ -21,6 +21,7 @@ Two experiments, both run in throw-away copies of the agent's tree:
 from __future__ import annotations
 
 import ast
+import re
 import shutil
 import subprocess
 import sys
@@ -59,9 +60,28 @@ def run_pytest(root: Path, timeout: int = 300) -> dict[str, str]:
     return results
 
 
-def _match(results: dict[str, str], test_name: str) -> dict[str, str]:
-    leaf = test_name.rsplit(".", 1)[-1]
-    return {k: v for k, v in results.items() if k.endswith("." + leaf) or k.endswith(leaf)}
+_PARAMS = re.compile(r"\[.*\]$")
+
+
+def _match(results: dict[str, str], test_name: str, test_file: str) -> dict[str, str]:
+    """Result ids (`<classname>.<name>`) that belong to `test_name` in `test_file`.
+
+    Exact on purpose: a loose match lets another test's outcome prove or
+    disprove this finding. Parametrized cases (`test_x[1]`) all belong to
+    `test_x`. The module part only has to agree on its trailing components,
+    because pytest reports `tests.test_one` or `test_one` depending on rootdir.
+    """
+    module = test_file.removesuffix(".py").split("/")
+    out: dict[str, str] = {}
+    for tid, outcome in results.items():
+        norm = _PARAMS.sub("", tid)
+        if not norm.endswith("." + test_name):
+            continue
+        prefix = norm[: -len(test_name) - 1].split(".")
+        n = min(len(prefix), len(module))
+        if prefix[-n:] == module[-n:]:
+            out[tid] = outcome
+    return out
 
 
 def _span(node: ast.AST) -> tuple[int, int]:
@@ -208,8 +228,8 @@ def oracle_restoration(repo: str, base: str, head: str, findings: list[Finding],
         note = (" (Whole original test file restored: a per-test splice was not possible.)"
                 if test_file in whole_file else "")
         for f in fs:
-            orig = _match(restored, f.data["test"])
-            agent = _match(baseline, f.data["test"])
+            orig = _match(restored, f.data["test"], test_file)
+            agent = _match(baseline, f.data["test"], test_file)
             orig_failed = any(v in ("failed", "error") for v in orig.values())
             agent_ok = not agent or all(v in ("passed", "skipped") for v in agent.values())
             if orig_failed and agent_ok:
