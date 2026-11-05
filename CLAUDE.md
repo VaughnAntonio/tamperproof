@@ -7,12 +7,18 @@ Background, decisions and current status: @docs/CONTEXT.md
 ## Commands
 
 ```bash
-pip install -e ".[dev]"                     # once, inside .venv
-pytest -q                                   # 9 tests; builds a demo repo in tmp, needs git on PATH
-ruff check .                                # lint (rules pinned in pyproject.toml)
-python demo/build_demo_repo.py demo_repo    # delete demo_repo/ first if it exists
-tamperproof demo_repo --base main --head agent/honest   # expect PASS, exit 0
-tamperproof demo_repo --base main --head agent/cheat --sarif cheat.sarif --md cheat.md   # expect BLOCK, exit 2
+# once, inside .venv
+python -m pip install -e ".[dev]"
+# 9 tests; builds a demo repo in tmp, needs git on PATH
+pytest -q
+# lint (rules pinned in pyproject.toml)
+ruff check .
+# delete demo_repo/ first if it exists
+python demo/build_demo_repo.py demo_repo
+# expect PASS, exit 0
+tamperproof demo_repo --base main --head agent/honest
+# expect BLOCK, exit 2
+tamperproof demo_repo --base main --head agent/cheat --sarif cheat.sarif --md cheat.md
 ```
 
 Run `ruff check .` and `pytest -q` after every change, and report the results. Exit code 2 from the cheat audit is correct, not a failure.
