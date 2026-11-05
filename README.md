@@ -48,6 +48,7 @@ tamperproof runs in two stages.
 ## Docs
 
 - **[Setup guide (PyCharm)](docs/SETUP_GUIDE.md)**: prerequisites, interpreter, run configs, debugging the proof engine, Git workflow
+- **[CLAUDE.md](CLAUDE.md)** + **[project context](docs/CONTEXT.md)**: loaded automatically by Claude Code
 - **[Claude Project instructions](docs/CLAUDE_PROJECT_INSTRUCTIONS.md)**: paste into a Claude Project for an AI pair-programmer that knows this codebase
 
 ## Demo
