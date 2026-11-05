@@ -15,3 +15,7 @@ cheat.md
 
 # PyCharm: keep shared run configs in .run/, ignore personal IDE state
 .idea/
+
+# Claude Code personal files
+CLAUDE.local.md
+.claude/settings.local.json
