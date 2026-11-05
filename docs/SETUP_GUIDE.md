@@ -72,7 +72,7 @@ If PyCharm offers to create an environment from `pyproject.toml` when you open t
 1. Open the terminal: **View | Tool Windows | Terminal** (`Alt+F12` / `Option+F12`). The prompt should start with `(.venv)`. If it doesn't, close and reopen the terminal tab.
 2. Run:
    ```bash
-   pip install -e ".[dev]"
+   python -m pip install -e ".[dev]"
    ```
    `-e` means **editable**. Your code changes take effect immediately, without reinstalling. `[dev]` also installs `ruff`, the linter.
 3. Check:
@@ -123,7 +123,7 @@ For tests: **+ → Python tests → pytest**, *Script path* = the `tests` folder
 
 To see coverage: *Run with Coverage* may be Pro-only after your trial. The free fallback is:
 ```bash
-pip install pytest-cov
+python -m pip install pytest-cov
 pytest --cov=tamperproof --cov-report=term-missing
 ```
 
@@ -237,7 +237,8 @@ The planning conversation ran as a Claude Code **cloud** session. Teleport can p
 
 ```bash
 cd ~/PycharmProjects/tamperproof
-claude --teleport            # pick the session from the list
+# pick the session from the list
+claude --teleport
 ```
 
 That session started before the repo existed, so teleport may not offer it. If it doesn't, nothing is lost: `CLAUDE.md` and `docs/CONTEXT.md` already carry the context.
@@ -274,7 +275,7 @@ That session started before the repo existed, so teleport may not offer it. If i
 | Symptom | Fix |
 |---|---|
 | `git: command not found` / tests fail with `FileNotFoundError: 'git'` | Install Git, then **restart PyCharm** so it sees the new PATH |
-| `ModuleNotFoundError: tamperproof` | You skipped `pip install -e ".[dev]"`, or ran it outside `.venv`. Check the terminal prompt shows `(.venv)` |
+| `ModuleNotFoundError: tamperproof` | You skipped `python -m pip install -e ".[dev]"`, or ran it outside `.venv`. Check the terminal prompt shows `(.venv)` |
 | Terminal not using `.venv` | **Settings | Tools | Terminal** → tick *Activate virtualenv*, then open a new terminal tab |
 | `TypeError: extractall() got an unexpected keyword argument 'filter'` | Python is older than 3.11.4. Install 3.12 and recreate `.venv` |
 | Run config shows *"Please select a valid Python interpreter"* | Edit the configuration and choose the `.venv` interpreter |
