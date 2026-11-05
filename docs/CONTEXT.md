@@ -42,13 +42,14 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
 ## Status (5 Nov 2026)
 
 - v0.1.0 done: 9 tests passing, ruff clean, CI workflow (lint, Python 3.11–3.13, demo gate), 4 shared PyCharm run configs, setup guide, Claude Project instructions.
+- Per-test oracle restoration done (`splice_tests`): 16 tests passing; the demo cheat branch now adds one legitimate test that the oracle run keeps.
 - Tested on Linux only so far. Next: confirm on Vaughn's machine in PyCharm.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
 ## Known limitations (say these in interviews)
 
 - Python + pytest only
-- Oracle restoration replaces whole test files, so legitimate new tests in the same file are lost during the experiment
+- Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
 - SC01 proof covers equality special-casing only
 - SC02 isn't provable yet (needs fault injection)
 - No calibration on real agent data yet, so no precision/recall numbers
