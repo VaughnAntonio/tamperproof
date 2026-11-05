@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# demo output
+demo_repo/
+*.sarif
+cheat.md
+
+# PyCharm: keep shared run configs in .run/, ignore personal IDE state
+.idea/
