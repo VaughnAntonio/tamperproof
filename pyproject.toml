@@ -14,6 +14,8 @@ dependencies = ["pytest>=7"]
 
 [project.optional-dependencies]
 dev = ["ruff>=0.5"]
+# Only for calibrating against Parquet datasets; the audit itself stays stdlib + pytest.
+calibrate = ["pyarrow>=15"]
 
 [project.scripts]
 tamperproof = "tamperproof.cli:main"
