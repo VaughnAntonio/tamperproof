@@ -45,7 +45,13 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
 - Test-id matching made exact (`.` boundary, parametrized ids, file and class respected): 22 tests passing.
 - SC02 proof done (handler ablation + fault injection): 27 tests passing. Only a real swallowed error proves SC02; Vaughn chose this so a blind spot alone can never BLOCK (5 Nov 2026).
 - SC01 range branches + spike probe done: 34 tests passing. Vaughn chose stdlib only over Hypothesis: a deterministic neighbour probe gives the same proof every run (5 Nov 2026).
-- Tested on Linux only so far. Next: confirm on Vaughn's machine in PyCharm.
+- Confirmed on macOS (Python 3.13): ruff clean, 34 tests, demo PASS 0 / BLOCK 2 (6 Nov 2026).
+- Calibration started (`tamperproof/calibration.py`: confusion at REVIEW/BLOCK, Wilson 95% CI, per-rule stats): 40 tests passing. Vaughn approved `pyarrow` as an optional `[calibrate]` extra only, so the audit runtime stays stdlib + pytest (6 Nov 2026).
+- Calibration pipeline built, waiting for gated dataset access: 68 tests passing (6 Nov 2026). Vaughn's choices:
+  - **Replay, never execute.** `replay.py` rebuilds the agent's tree from editor ops, `cat` heredocs and git restores only. Any other `.py` write marks the rollout `partial` and excludes it, so no reconstructed tree is a guess.
+  - **Base = `base_commit` + altered `test_patch`** (`rebuild.py`), the sandbox as the agent found it.
+  - **Static-only, stratified sample** (800 hack / 800 honest / 200 attempt / 200 other_test, ≤3 per task, seed 0) over `rollouts_truncated`. Precision is rebuilt at the population ratio from per-stratum recall and FPR; BLOCK is "not measured" until the SWE-Gym sandbox images are available.
+  - Finding while building it: a single TT05 (medium, 12) is below REVIEW (15) with proofs off, so a `oneoff` hack can PASS statically. Calibration therefore also reports an `ANY` (score > 0) operating point. Weights unchanged pending the numbers.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
 ## Known limitations (say these in interviews)
