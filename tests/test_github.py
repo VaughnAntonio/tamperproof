@@ -105,3 +105,17 @@ def test_sarif_information_uri_points_at_real_repo():
     sarif = json.loads(to_sarif(_result(3)))
     assert sarif["runs"][0]["tool"]["driver"]["informationUri"] == \
         "https://github.com/VaughnAntonio/tamperproof"
+
+
+def _levels(**proofs):
+    """SARIF level per rule for findings with the given proof status."""
+    findings = [Finding(rule, "high", "src.py", 3, "msg", {}, proven=p) for rule, p in proofs.items()]
+    sarif = json.loads(to_sarif(AuditResult(base="b", head="h", findings=findings)))
+    return {r["ruleId"]: r["level"] for r in sarif["runs"][0]["results"]}
+
+
+def test_only_proven_findings_are_sarif_errors():
+    # GitHub fails the code-scanning check on any `error`, so only proof may produce one,
+    # mirroring "only a proven finding can BLOCK". Found by dogfooding PR #7.
+    assert _levels(TT01=True, TT03=None, SC01=False) == {
+        "TT01": "error", "TT03": "warning", "SC01": "note"}
