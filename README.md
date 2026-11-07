@@ -141,7 +141,7 @@ tamperproof/
   github.py        sticky PR comment (stdlib urllib)
 action.yml                composite GitHub Action: audit, PR comment, SARIF upload, gate
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    78 tests, including the end-to-end demo
+tests/                    79 tests, including the end-to-end demo
 .run/                     shared PyCharm run configurations
 .github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate through the action
 .github/workflows/tamperproof.yml  dogfood: the action audits this repo's own PRs
