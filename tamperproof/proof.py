@@ -39,40 +39,25 @@ import subprocess
 import sys
 import tempfile
 import textwrap
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from . import gitio
+from .runners import PytestRunner, TestRunner, runner_for
 from .static_rules import Finding, functions
 
 TAMPER_RULES = {"TT01", "TT02", "TT03", "TT04", "TT05", "TT06"}
 
 
 def run_pytest(root: Path, timeout: int = 300) -> dict[str, str]:
-    """Run pytest in `root`; return {test_id: passed|failed|skipped|error}."""
-    xml = root / ".tamperproof-junit.xml"
-    subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
-         f"--junitxml={xml}", "-o", "junit_family=xunit2"],
-        cwd=root, capture_output=True, text=True, timeout=timeout,
-    )
-    results: dict[str, str] = {}
-    if not xml.exists():
-        return results
-    for case in ET.parse(xml).getroot().iter("testcase"):
-        tid = f"{case.get('classname')}.{case.get('name')}"
-        if case.find("failure") is not None:
-            results[tid] = "failed"
-        elif case.find("error") is not None:
-            results[tid] = "error"
-        elif case.find("skipped") is not None:
-            results[tid] = "skipped"
-        else:
-            results[tid] = "passed"
-    return results
+    """Run pytest in `root`; return {test_id: passed|failed|skipped|error}.
+
+    Kept for callers and tests; the runner itself lives in `runners.py` next to Gradle's.
+    """
+    return PytestRunner().run(root, timeout)
 
 
 _PARAMS = re.compile(r"\[.*\]$")
+_SOURCE_EXT = re.compile(r"\.(py|kt|java)$")
 
 
 def _match(results: dict[str, str], test_name: str, test_file: str) -> dict[str, str]:
@@ -83,7 +68,7 @@ def _match(results: dict[str, str], test_name: str, test_file: str) -> dict[str,
     `test_x`. The module part only has to agree on its trailing components,
     because pytest reports `tests.test_one` or `test_one` depending on rootdir.
     """
-    module = test_file.removesuffix(".py").split("/")
+    module = _SOURCE_EXT.sub("", test_file).split("/")
     out: dict[str, str] = {}
     for tid, outcome in results.items():
         norm = _PARAMS.sub("", tid)
@@ -207,7 +192,8 @@ def splice_tests(base_src: str, head_src: str, names: list[str]) -> str | None:
 
 
 def oracle_restoration(repo: str, base: str, head: str, findings: list[Finding],
-                       baseline: dict[str, str], workdir: Path) -> dict[str, str]:
+                       baseline: dict[str, str], workdir: Path,
+                       runner: TestRunner | None = None) -> dict[str, str]:
     """Run the original versions of tampered tests against the agent's code.
 
     Returns the restored run's results (empty if nothing was tampered with).
@@ -228,17 +214,19 @@ def oracle_restoration(repo: str, base: str, head: str, findings: list[Finding],
             continue
         target = tree / test_file
         current = target.read_text() if target.exists() else None
+        # Per-test splicing needs Python's ast; other languages restore the whole file.
         spliced = (splice_tests(original, current, [f.data["test"] for f in fs])
-                   if current is not None else None)
+                   if current is not None and test_file.endswith(".py") else None)
         if spliced is None:
             whole_file.add(test_file)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(spliced if spliced is not None else original)
-    restored = run_pytest(tree)
+    restored = (runner or PytestRunner()).run(tree)
 
     for test_file, fs in by_file.items():
-        note = (" (Whole original test file restored: a per-test splice was not possible.)"
-                if test_file in whole_file else "")
+        why = ("per-test splicing is Python-only" if not test_file.endswith(".py")
+               else "a per-test splice was not possible")
+        note = f" (Whole original test file restored: {why}.)" if test_file in whole_file else ""
         for f in fs:
             orig = _match(restored, f.data["test"], test_file)
             agent = _match(baseline, f.data["test"], test_file)
@@ -530,8 +518,9 @@ def prove(repo: str, base: str, head: str, findings: list[Finding],
     workdir = Path(tempfile.mkdtemp(prefix="tamperproof-"))
     try:
         head_tree = gitio.export_tree(repo, head, workdir / "head")
-        baseline = run_pytest(head_tree)
-        oracle_restoration(repo, base, head, findings, baseline, workdir)
+        runner = runner_for(head_tree)
+        baseline = runner.run(head_tree)
+        oracle_restoration(repo, base, head, findings, baseline, workdir, runner)
         branch_ablation(repo, head, findings, baseline, test_sources, workdir)
         spike_probe(repo, head, findings, test_sources, workdir)
         swallow_experiments(repo, head, findings, baseline, workdir)

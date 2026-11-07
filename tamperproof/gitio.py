@@ -16,6 +16,12 @@ def git(repo: str | Path, *args: str) -> str:
 
 def changed_py_files(repo: str | Path, base: str, head: str) -> list[tuple[str, str | None, str | None]]:
     """Return (status, old_path, new_path) for every changed .py file."""
+    return changed_files(repo, base, head, (".py",))
+
+
+def changed_files(repo: str | Path, base: str, head: str,
+                  suffixes: tuple[str, ...]) -> list[tuple[str, str | None, str | None]]:
+    """Return (status, old_path, new_path) for every changed file ending in `suffixes`."""
     out = git(repo, "diff", "--name-status", "-M", base, head)
     changes = []
     for line in out.splitlines():
@@ -29,7 +35,7 @@ def changed_py_files(repo: str | Path, base: str, head: str) -> list[tuple[str, 
             old, new = None, parts[1]
         else:
             old = new = parts[1]
-        if (old or new).endswith(".py"):
+        if (old or new).endswith(suffixes):
             changes.append((status, old, new))
     return changes
 
