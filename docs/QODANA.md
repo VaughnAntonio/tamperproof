@@ -52,6 +52,7 @@ In order of effort:
 
 - Qodana is advisory here on purpose. Making it a second gate would mix a quality threshold with tamperproof's proof rule.
 - `pr-mode` (on by default) makes Qodana analyse only the files a PR changed; tamperproof also looks only at the diff, but runs the whole test suite for its proofs.
+- Qodana flags PEP 604 annotations (`str | Path`, `X | None`) as "Invalid type annotation" on this Python 3.11+ code base (first seen on PR #9). Those annotations are valid here, so the warnings are most likely false positives from Qodana assuming an older Python version. Left as is and noted here, because Qodana is advisory.
 - Qodana Community for Python is the free linter. The paid `qodana-python` linter and test-coverage thresholds were not tried.
 
 ## Sources

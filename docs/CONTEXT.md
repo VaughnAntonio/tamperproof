@@ -67,6 +67,7 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
   - **Stand-in detector** (`kotlin_sketch.py`): tokens with strings/comments masked, not an AST, labelled as such; the real port uses UAST (`docs/KOTLIN_PORT.md`).
   - **Gradle in CI only**, nothing installed on his Mac. `TAMPERPROOF_SKIP_GRADLE=1` keeps the fast matrix fast; the `kotlin-demo` job fails if the e2e tests skip.
   - Missing Gradle returns no results (findings stay unproven, never BLOCK) instead of crashing, because a crash exits 1 and reads as REVIEW.
+  - Dogfood caught a toolchain mismatch on PR #9: the runner image's preinstalled Gradle 9.8.2 ran the Kotlin e2e inside the self-audit and they failed with Kotlin plugin 2.0.21. Vaughn chose to upgrade (Kotlin 2.4.21, CI pinned to Gradle 9.8.2) rather than skip Gradle in the dogfood run. Qodana's PEP 604 "invalid type annotation" warnings: documented only.
   - Research: `qodana.yaml` `plugins:` loads Marketplace plugins, so a tamperproof IntelliJ plugin would run inside Qodana.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
