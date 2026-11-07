@@ -51,8 +51,7 @@ tamperproof runs in two stages.
 - **[Kotlin/JUnit port sketch](docs/KOTLIN_PORT.md)**: the proof engine on Kotlin via Gradle (built), and the UAST/IntelliJ plugin route (proposed)
 - **[Qodana integration](docs/QODANA.md)**: running next to Qodana, SARIF alignment, gaps and proposed integration
 - **[Setup guide (PyCharm)](docs/SETUP_GUIDE.md)**: prerequisites, interpreter, run configs, debugging the proof engine, Git workflow
-- **[CLAUDE.md](CLAUDE.md)** + **[project context](docs/CONTEXT.md)**: loaded automatically by Claude Code
-- **[Claude Project instructions](docs/CLAUDE_PROJECT_INSTRUCTIONS.md)**: paste into a Claude Project for an AI pair-programmer that knows this codebase
+- **[Project context](docs/CONTEXT.md)**: why the project exists, design decisions and status
 
 ## Demo
 

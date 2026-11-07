@@ -16,10 +16,6 @@ cheat.md
 # PyCharm: keep shared run configs in .run/, ignore personal IDE state
 .idea/
 
-# Claude Code personal files
-CLAUDE.local.md
-.claude/settings.local.json
-
 # calibration: the dataset is gated (never commit it); per-rollout results stay local
 calibration_data/
 calibration_results.jsonl
