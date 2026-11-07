@@ -90,6 +90,44 @@ Note the **disproven** lines. The agent deleted `test_large_order` and loosened 
 
 Exit codes are `0` PASS, `1` REVIEW, `2` BLOCK, so CI can gate on them.
 
+## GitHub Action
+
+Run tamperproof on every pull request. It posts **one sticky PR comment** (updated on each push), uploads findings to the **code scanning** tab as SARIF, and fails the check only on `BLOCK`.
+
+```yaml
+# .github/workflows/tamperproof.yml
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write    # sticky comment
+  security-events: write  # SARIF upload
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: VaughnAntonio/tamperproof@main
+        with:
+          base: origin/${{ github.base_ref }}
+```
+
+| Input | Default | Meaning |
+|---|---|---|
+| `base` | required | Ref before the change |
+| `head` | `HEAD` | Ref with the change |
+| `repo` | `.` | Path to the git repo to audit |
+| `comment` | `true` | Sticky PR comment with the Markdown report |
+| `upload-sarif` | `true` | Send findings to GitHub code scanning |
+| `fail-on` | `block` | `block`, `review` or `never` |
+| `no-proof` | `false` | Static analysis only (can never BLOCK) |
+| `python-version` | `3.12` | Python for tamperproof and the audited tests |
+
+Outputs: `verdict`, `score`, `exit-code`, `markdown`, `sarif`. The report also goes to the job summary.
+
+Limits: PRs from forks get a read-only token, so the comment and the SARIF upload are skipped with a warning (the verdict still gates). Proof runs execute the test suite several times, so they cost CI minutes; `no-proof: true` is the cheap advisory mode.
+
 ## Project layout
 
 ```
@@ -100,10 +138,13 @@ tamperproof/
   audit.py         orchestration, scoring, verdict
   report.py        terminal, Markdown (PR comment), SARIF 2.1.0 (Qodana / GitHub)
   cli.py           python -m tamperproof
+  github.py        sticky PR comment (stdlib urllib)
+action.yml                composite GitHub Action: audit, PR comment, SARIF upload, gate
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    34 tests, including the end-to-end demo
+tests/                    78 tests, including the end-to-end demo
 .run/                     shared PyCharm run configurations
-.github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate
+.github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate through the action
+.github/workflows/tamperproof.yml  dogfood: the action audits this repo's own PRs
 ```
 
 ## Limitations and next steps
