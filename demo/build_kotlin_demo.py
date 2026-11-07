@@ -19,10 +19,12 @@ from pathlib import Path
 
 SETTINGS = 'rootProject.name = "pricing"\n'
 
-# Kotlin 2.0.21 + JUnit 5.10.2; runs on the JDK that Gradle runs on (CI: Temurin 21).
+# Kotlin 2.4.21 + JUnit 5.10.2, matching GitHub's ubuntu-24.04 runner image (Gradle 9.8.2,
+# Kotlin 2.4.21). Pinned to that image so the demo passes under the preinstalled Gradle too:
+# the dogfood audit runs this repo's tests with whatever Gradle the runner has.
 BUILD = """\
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.4.21"
 }
 
 repositories {
