@@ -48,6 +48,7 @@ tamperproof runs in two stages.
 
 ## Docs
 
+- **[Kotlin/JUnit port sketch](docs/KOTLIN_PORT.md)**: the proof engine on Kotlin via Gradle (built), and the UAST/IntelliJ plugin route (proposed)
 - **[Qodana integration](docs/QODANA.md)**: running next to Qodana, SARIF alignment, gaps and proposed integration
 - **[Setup guide (PyCharm)](docs/SETUP_GUIDE.md)**: prerequisites, interpreter, run configs, debugging the proof engine, Git workflow
 - **[CLAUDE.md](CLAUDE.md)** + **[project context](docs/CONTEXT.md)**: loaded automatically by Claude Code
@@ -135,16 +136,19 @@ Limits: PRs from forks get a read-only token, so the comment and the SARIF uploa
 tamperproof/
   gitio.py         git plumbing: changed files, file-at-ref, export tree to sandbox
   static_rules.py  AST detectors -> Finding objects
-  proof.py         oracle restoration + branch ablation, runs pytest via JUnit XML
+  proof.py         oracle restoration, branch ablation, spike probe, SC02 experiments
+  runners.py       pytest and Gradle test runners, one JUnit XML parser
+  kotlin_sketch.py stand-in Kotlin/JUnit test-tamper detector (tokens, not UAST)
   audit.py         orchestration, scoring, verdict
   report.py        terminal, Markdown (PR comment), SARIF 2.1.0 (Qodana / GitHub)
   cli.py           python -m tamperproof
   github.py        sticky PR comment (stdlib urllib)
 action.yml                composite GitHub Action: audit, PR comment, SARIF upload, gate
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    83 tests, including the end-to-end demo
+demo/build_kotlin_demo.py same scenario in Kotlin/JUnit 5 (Gradle)
+tests/                    101 tests, including the Python and Kotlin end-to-end demos
 .run/                     shared PyCharm run configurations
-.github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate through the action
+.github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate through the action + Kotlin demo via Gradle
 .github/workflows/tamperproof.yml  dogfood: the action audits this repo's own PRs
 .github/workflows/qodana.yml       Qodana Community for Python, advisory, SARIF to code scanning
 qodana.yaml               Qodana config
@@ -152,7 +156,7 @@ qodana.yaml               Qodana config
 
 ## Limitations and next steps
 
-- Python + pytest only. The same design works for Kotlin/JUnit through the IntelliJ PSI instead of `ast`.
+- Python + pytest for the full rule set. Kotlin/JUnit runs the test-tampering proofs through Gradle with a token-level stand-in detector; a real port would use IntelliJ's UAST ([sketch](docs/KOTLIN_PORT.md)).
 - Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
 - SC01 covers equality and range branches on numeric inputs. The spike probe needs a test that calls the function with the value as a plain literal, and only probes module-level functions; special-casing via dict lookups or string matching isn't covered.
 - SC02 is proven only when re-raising in the handler breaks a passing test (a real error was swallowed). Fault injection can clear it, but a suite that is merely blind to the block stays a suspicion: an honest fallback handler looks the same, and a blind spot must not BLOCK.
