@@ -62,11 +62,17 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
   - **Live Qodana job** (Community for Python, no token), **advisory**: no `failThreshold`; tamperproof stays the only gate.
   - **SARIF aligned with Qodana's profile**: `tool.driver.version`, `automationDetails.id` (`tamperproof/`), `partialFingerprints["tamperproof/v1"]` (rule + file + code span, not line). No `baselineState` (base-vs-head already makes every finding new).
   - Research finding: no documented way to show non-Qodana SARIF in Qodana Cloud; code scanning is the shared view. Qodana gate exits 255; tamperproof keeps 0/1/2.
+- Kotlin/JUnit sketch done (roadmap 7): 101 tests, 2 Kotlin e2e skipped without Gradle (7 Nov 2026). Vaughn's choices:
+  - **Real Kotlin demo** (`demo/build_kotlin_demo.py`, JUnit 5, Gradle) through the unchanged oracle restoration: honest PASS, cheat BLOCK (TT03 + TT05 proven, TT01 disproven).
+  - **Stand-in detector** (`kotlin_sketch.py`): tokens with strings/comments masked, not an AST, labelled as such; the real port uses UAST (`docs/KOTLIN_PORT.md`).
+  - **Gradle in CI only**, nothing installed on his Mac. `TAMPERPROOF_SKIP_GRADLE=1` keeps the fast matrix fast; the `kotlin-demo` job fails if the e2e tests skip.
+  - Missing Gradle returns no results (findings stay unproven, never BLOCK) instead of crashing, because a crash exits 1 and reads as REVIEW.
+  - Research: `qodana.yaml` `plugins:` loads Marketplace plugins, so a tamperproof IntelliJ plugin would run inside Qodana.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
 ## Known limitations (say these in interviews)
 
-- Python + pytest only
+- Python + pytest for the full rule set; Kotlin/JUnit covers only test tampering, via a token-level stand-in (not UAST)
 - Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
 - SC01 covers equality and numeric range branches; the range probe needs a literal call in the tests and a module-level function
 - SC02 is proven only by a real swallowed error during the tests. A suite that can't see the block stays suspected, never BLOCK
