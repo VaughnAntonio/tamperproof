@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 
 from .audit import AuditResult
 from .static_rules import RULES
@@ -18,6 +20,18 @@ def _sarif_level(f) -> str:
     if f.proven is False:
         return "note"  # disproven: kept visible as cleared, never alarming
     return LEVEL[f.severity]
+
+
+def _fingerprint(f) -> str:
+    """Stable alert identity for code scanning (Qodana uses `equalIndicator/v1` the same way).
+
+    Built from rule + file + the first `code` span of the message (test name, function,
+    branch), not the line number, so an alert survives code moving and a BR01 call-site
+    count change. Falls back to the whole message when it has no code span.
+    """
+    m = re.search(r"`([^`]+)`", f.message)
+    key = f"{f.rule}|{f.file}|{m.group(1) if m else f.message}"
+    return hashlib.sha256(key.encode()).hexdigest()[:32]
 
 
 def _tag(f) -> str:
@@ -67,6 +81,8 @@ def to_markdown(r: AuditResult) -> str:
 
 
 def to_sarif(r: AuditResult) -> str:
+    from . import __version__  # lazy: the package __init__ defines it after importing audit
+
     used = sorted({f.rule for f in r.findings})
     sarif = {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
@@ -74,6 +90,7 @@ def to_sarif(r: AuditResult) -> str:
         "runs": [{
             "tool": {"driver": {
                 "name": "tamperproof",
+                "version": __version__,
                 "informationUri": "https://github.com/VaughnAntonio/tamperproof",
                 "rules": [{"id": rid, "shortDescription": {"text": RULES[rid]}} for rid in used],
             }},
@@ -85,8 +102,11 @@ def to_sarif(r: AuditResult) -> str:
                     "artifactLocation": {"uri": f.file},
                     "region": {"startLine": max(1, f.line)},  # GitHub rejects 0
                 }}],
+                "partialFingerprints": {"tamperproof/v1": _fingerprint(f)},
                 "properties": {"proven": f.proven, "severity": f.severity},
             } for f in r.findings],
+            # Same value as the action's `category: tamperproof`; GitHub appends the "/".
+            "automationDetails": {"id": "tamperproof/"},
             "properties": {"verdict": r.verdict, "score": r.score},
         }],
     }
