@@ -67,6 +67,7 @@ Cost is the real difference: each JVM experiment is a Gradle build. Gradle's dae
 ## Limitations
 
 - The built part covers the test-tampering rules only, through a token-level stand-in, not UAST.
+- Toolchain pinned to GitHub's ubuntu-24.04 image (Gradle 9.8.2, Kotlin plugin 2.4.21). The first version used Kotlin 2.0.21 and passed under a pinned Gradle 8.10.2, but this repo's own dogfood audit ran the same tests under the image's preinstalled Gradle 9.8.2 and reported the suite red: the self-audit caught a toolchain mismatch.
 - Only JUnit 5 on Gradle with the default `test` task and results directory is exercised. Maven (Surefire also writes JUnit XML), Android and custom test tasks are not.
 - Parametrized JUnit tests (`@ParameterizedTest`) report display names per case; matching them to the `fun` name is untested.
 - Gradle runs only in CI here (Vaughn's choice: nothing installed locally), so the Kotlin end-to-end tests are skipped on a laptop without Gradle, and say so.
