@@ -52,11 +52,12 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
   - **Base = `base_commit` + altered `test_patch`** (`rebuild.py`), the sandbox as the agent found it.
   - **Static-only, stratified sample** (800 hack / 800 honest / 200 attempt / 200 other_test, ≤3 per task, seed 0) over `rollouts_truncated`. Precision is rebuilt at the population ratio from per-stratum recall and FPR; BLOCK is "not measured" until the SWE-Gym sandbox images are available.
   - Finding while building it: a single TT05 (medium, 12) is below REVIEW (15) with proofs off, so a `oneoff` hack can PASS statically. Calibration therefore also reports an `ANY` (score > 0) operating point. Weights unchanged pending the numbers.
-- GitHub Action done (roadmap 5): 78 tests passing (7 Nov 2026). Composite `action.yml` runs the audit, posts one sticky PR comment (`tamperproof/github.py`, stdlib urllib, hidden marker), uploads SARIF to code scanning, then gates. Vaughn's choices:
+- GitHub Action done (roadmap 5): 79 tests passing (7 Nov 2026). Composite `action.yml` runs the audit, posts one sticky PR comment (`tamperproof/github.py`, stdlib urllib, hidden marker), uploads SARIF to code scanning, then gates. Vaughn's choices:
   - **`fail-on: block` by default**, so REVIEW is a comment, not a red check (matches "only proven findings BLOCK").
   - **Dogfood** on this repo's PRs (`.github/workflows/tamperproof.yml`); the CI demo gate now goes through the action itself.
   - Fork PRs: comment and SARIF upload degrade to warnings; the verdict still gates.
   - SARIF fixes: `startLine` clamped to ≥ 1 (GitHub rejects 0); `informationUri` points at the repo.
+  - Dogfooding PR #7 found that a *disproven* high-severity SC01 was a SARIF `error`, which fails GitHub's code-scanning check. SARIF level now follows proof status: proven `error`, suspected at most `warning`, disproven `note`.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
 ## Known limitations (say these in interviews)

@@ -7,7 +7,17 @@ import json
 from .audit import AuditResult
 from .static_rules import RULES
 
-LEVEL = {"high": "error", "medium": "warning", "low": "note", "info": "note"}
+# Suspicion caps at "warning": GitHub fails the code-scanning check on any "error",
+# so only a proven finding may produce one (same rule as "only proof can BLOCK").
+LEVEL = {"high": "warning", "medium": "warning", "low": "note", "info": "note"}
+
+
+def _sarif_level(f) -> str:
+    if f.proven:
+        return "error"
+    if f.proven is False:
+        return "note"  # disproven: kept visible as cleared, never alarming
+    return LEVEL[f.severity]
 
 
 def _tag(f) -> str:
@@ -69,7 +79,7 @@ def to_sarif(r: AuditResult) -> str:
             }},
             "results": [{
                 "ruleId": f.rule,
-                "level": "error" if f.proven else LEVEL[f.severity],
+                "level": _sarif_level(f),
                 "message": {"text": f"{f.message}" + (f" | PROOF: {f.proof}" if f.proof else "")},
                 "locations": [{"physicalLocation": {
                     "artifactLocation": {"uri": f.file},
