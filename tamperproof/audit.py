@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import gitio, proof
+from .kotlin_sketch import diff_kotlin_tests, is_kotlin_test_file
+from .runners import runner_for
 from .static_rules import (
     SEVERITY_WEIGHT,
     Finding,
@@ -65,6 +67,13 @@ def audit(repo: str, base: str, head: str = "HEAD", run_proofs: bool = True) -> 
             findings += diff_source(path, before, after, lits)
             findings += coverage_and_blast(path, changed_functions(before, after), test_text, head_sources)
 
+    # Kotlin/JUnit sketch (roadmap 7): stand-in detector for test files only; see kotlin_sketch.py.
+    for _status, old, new in gitio.changed_files(repo, base, head, (".kt",)):
+        path = new or old
+        if is_kotlin_test_file(path):
+            before, after = gitio.read_at(repo, base, old), gitio.read_at(repo, head, new)
+            findings += diff_kotlin_tests(path, before, after)
+
     agent_tests: dict[str, str] = {}
     if run_proofs and any(f.rule.startswith(("TT", "SC01", "SC02")) for f in findings):
         agent_tests = proof.prove(repo, base, head, findings, head_tests)
@@ -72,7 +81,8 @@ def audit(repo: str, base: str, head: str = "HEAD", run_proofs: bool = True) -> 
         import tempfile
         from pathlib import Path
         with tempfile.TemporaryDirectory() as d:
-            agent_tests = proof.run_pytest(gitio.export_tree(repo, head, Path(d)))
+            tree = gitio.export_tree(repo, head, Path(d))
+            agent_tests = runner_for(tree).run(tree)
 
     order = {"high": 0, "medium": 1, "low": 2, "info": 3}
     findings.sort(key=lambda f: (not f.proven, order[f.severity], f.file, f.line))

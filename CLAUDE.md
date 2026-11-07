@@ -9,7 +9,7 @@ Background, decisions and current status: @docs/CONTEXT.md
 ```bash
 # once, inside .venv
 python -m pip install -e ".[dev]"
-# 83 tests; builds a demo repo in tmp, needs git on PATH
+# 101 tests (2 Kotlin e2e skip without gradle); builds a demo repo in tmp, needs git on PATH
 pytest -q
 # lint (rules pinned in pyproject.toml)
 ruff check .
@@ -31,6 +31,7 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
   - Branch ablation (SC01 equality): delete the suspicious `if`, rerun agent tests. Tests using that literal flip to failing → `proven=True`.
   - Spike probe (SC01 `kind: range`, severity low): call the function at each literal test input and its neighbours, with and without the branch. Differs only at the test input → `proven=True`; differs at a neighbour → `proven=False` (real tier); no literal call → stays suspected. Stdlib only, deterministic.
   - Handler ablation + fault injection (SC02): re-raise in the new handler; a passing test that now fails → `proven=True` (real error swallowed). Else inject a fault into the `try`: a test that notices → `proven=False`; none notice, or no test runs the block → stays suspected (`proven=None`). Fault injection alone never proves, so a blind spot can't BLOCK.
+- `tamperproof/runners.py`: `PytestRunner` / `GradleRunner` (picked by `build.gradle(.kts)`), shared JUnit XML parser. `kotlin_sketch.py`: token-level stand-in detector for Kotlin tests (TT01/02/03/05/06), same `Finding.data` contract; oracle restoration restores whole files for non-`.py`.
 - `tamperproof/audit.py`: orchestration, score, verdict. `report.py`: text, Markdown, SARIF 2.1.0. `cli.py`: argparse.
 - `action.yml` (composite) + `tamperproof/github.py`: sticky PR comment (stdlib urllib, hidden `<!-- tamperproof -->` marker), SARIF upload, `fail-on` gate. Never fails the job over a comment; the exit code gates.
 - `Finding.data` is the contract between static rules and the proof engine (`test`, `test_file`, `line`, `literals`, `try_line`, `kind`). For SC02, `line` is the handler and `try_line` its `try`. For SC01, `kind: "range"` marks a `<`/`<=`/`>`/`>=` branch (absent for equality). Document any new key.
@@ -63,4 +64,4 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 4. Calibrate on `AlignmentResearch/impossible-swe-nemotron-rollouts`; report precision/recall
 5. ~~PR-comment GitHub Action (`--md`) and SARIF upload~~ (done, `action.yml` + `tamperproof/github.py`)
 6. ~~Qodana integration notes~~ (done, `docs/QODANA.md` + advisory Qodana workflow)
-7. Kotlin/JUnit port sketch via IntelliJ PSI
+7. ~~Kotlin/JUnit port sketch via IntelliJ PSI~~ (done, `docs/KOTLIN_PORT.md`, Gradle runner + Kotlin demo in CI)

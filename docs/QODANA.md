@@ -46,7 +46,7 @@ In order of effort:
 
 1. **External SARIF in Qodana Cloud** (on JetBrains' side). If Qodana Cloud accepted a second SARIF per run, tamperproof findings would sit next to inspections in the report and in the IDE's Qodana tab, with no plugin. The SARIF is already aligned (above).
 2. **A proof-aware quality gate** (needs item 1). Map tamperproof to Qodana's gate by counting only *proven* findings: `severityThresholds.critical: 0` over results whose `level` is `error`. That is exactly `BLOCK`, expressed in Qodana's own terms.
-3. **tamperproof as a Qodana / IntelliJ inspection.** The static stage (AST diff of tests and source) maps onto inspections over the PSI; the proof stage needs the sandbox that Air already provides for agent runs. This is also the route to Kotlin/JUnit (roadmap step 7).
+3. **tamperproof as a Qodana / IntelliJ inspection.** The static stage (AST diff of tests and source) maps onto inspections over the PSI; the proof stage needs the sandbox that Air already provides for agent runs. This is also the route to Kotlin/JUnit (roadmap step 7). `qodana.yaml` can load JetBrains Marketplace plugins (`plugins: - id: <plugin.id>`), so a published tamperproof plugin would run inside Qodana with no further integration; see [KOTLIN_PORT.md](KOTLIN_PORT.md).
 
 ## Limitations of this setup
 
