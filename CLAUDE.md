@@ -9,7 +9,7 @@ Background, decisions and current status: @docs/CONTEXT.md
 ```bash
 # once, inside .venv
 python -m pip install -e ".[dev]"
-# 79 tests; builds a demo repo in tmp, needs git on PATH
+# 83 tests; builds a demo repo in tmp, needs git on PATH
 pytest -q
 # lint (rules pinned in pyproject.toml)
 ruff check .
@@ -62,5 +62,5 @@ Run `ruff check .` and `pytest -q` after every change, and report the results. E
 3. ~~Perturbation for SC01 beyond equality~~ (done, stdlib `spike_probe` in `proof.py`; Hypothesis not needed)
 4. Calibrate on `AlignmentResearch/impossible-swe-nemotron-rollouts`; report precision/recall
 5. ~~PR-comment GitHub Action (`--md`) and SARIF upload~~ (done, `action.yml` + `tamperproof/github.py`)
-6. Qodana integration notes
+6. ~~Qodana integration notes~~ (done, `docs/QODANA.md` + advisory Qodana workflow)
 7. Kotlin/JUnit port sketch via IntelliJ PSI

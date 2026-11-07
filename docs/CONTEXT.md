@@ -58,6 +58,10 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
   - Fork PRs: comment and SARIF upload degrade to warnings; the verdict still gates.
   - SARIF fixes: `startLine` clamped to ≥ 1 (GitHub rejects 0); `informationUri` points at the repo.
   - Dogfooding PR #7 found that a *disproven* high-severity SC01 was a SARIF `error`, which fails GitHub's code-scanning check. SARIF level now follows proof status: proven `error`, suspected at most `warning`, disproven `note`.
+- Qodana notes done (roadmap 6): 83 tests passing (7 Nov 2026). `docs/QODANA.md`, `qodana.yaml`, `.github/workflows/qodana.yml`. Vaughn's choices:
+  - **Live Qodana job** (Community for Python, no token), **advisory**: no `failThreshold`; tamperproof stays the only gate.
+  - **SARIF aligned with Qodana's profile**: `tool.driver.version`, `automationDetails.id` (`tamperproof/`), `partialFingerprints["tamperproof/v1"]` (rule + file + code span, not line). No `baselineState` (base-vs-head already makes every finding new).
+  - Research finding: no documented way to show non-Qodana SARIF in Qodana Cloud; code scanning is the shared view. Qodana gate exits 255; tamperproof keeps 0/1/2.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
 ## Known limitations (say these in interviews)
