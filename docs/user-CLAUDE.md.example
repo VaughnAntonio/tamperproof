@@ -1,9 +1,0 @@
-# About me (copy this file to ~/.claude/CLAUDE.md)
-
-This is your *personal* Claude Code memory. It applies to every project on your computer and is never committed to any repo. Edit freely.
-
-- I'm Vaughn, a master's student in Connected Industry 4.0 at UC3M (Madrid). I have a BSc in Creative Computing and a background in web and software development.
-- I'm applying for summer 2027 roles. Portfolio projects should be pitched at the company they target.
-- My IDE is PyCharm (free tier). Give menu paths plus shortcuts as Windows/Linux / macOS, and don't assume Pro-only features.
-- Explain the *why* once, then be brief. Lead with the answer.
-- Ask before adding dependencies, pushing to remote, or anything hard to undo.

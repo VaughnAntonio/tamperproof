@@ -1,12 +1,12 @@
 # Project context and decision log
 
-This file carries over the planning conversation (claude.ai, 5 Nov 2026) in which tamperproof was designed and built. `CLAUDE.md` imports it, so Claude Code starts every session with this background.
+Why tamperproof exists, the design decisions behind it, and where it stands. Started 5 Nov 2026.
 
 ## Origin
 
-- **Goal:** a unique Python project that solves a real problem for **JetBrains**, to support Vaughn's applications for summer 2027 roles.
+- **Goal:** a unique Python project that solves a real problem for **JetBrains**, to support my applications for summer 2027 roles.
 - **Research:** recent JetBrains blog posts (Oct–Nov 2026), read through the Plushcap mirror because blog.jetbrains.com only rendered one post.
-- **First idea, rejected:** "Air Spend Guard", AI-agent spend analytics with anomaly detection, budget forecasting and Eco-Mode savings. Vaughn rejected it because JetBrains already ships this (*Air Governance*, *Junie Eco Mode*). Lesson: **don't rebuild what the company already sells; find an unsolved gap.**
+- **First idea, rejected:** "Air Spend Guard", AI-agent spend analytics with anomaly detection, budget forecasting and Eco-Mode savings. I rejected it because JetBrains already ships this (*Air Governance*, *Junie Eco Mode*). Lesson: **don't rebuild what the company already sells; find an unsolved gap.**
 - **Chosen idea:** tamperproof. AI agents sometimes reach "green CI" by gaming the tests (skipping, weakening assertions, hardcoding test inputs). Existing detectors only *flag patterns*. One author who mined 327 agent PRs reported that no detector could be trusted to block on its own. tamperproof turns suspicion into **runtime proof**.
 
 ## Why it fits JetBrains
@@ -40,34 +40,34 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
 
 ## Status (5 Nov 2026)
 
-- v0.1.0 done: 9 tests passing, ruff clean, CI workflow (lint, Python 3.11–3.13, demo gate), 4 shared PyCharm run configs, setup guide, Claude Project instructions.
+- v0.1.0 done: 9 tests passing, ruff clean, CI workflow (lint, Python 3.11–3.13, demo gate), 4 shared PyCharm run configs, setup guide.
 - Per-test oracle restoration done (`splice_tests`): 16 tests passing; the demo cheat branch now adds one legitimate test that the oracle run keeps.
 - Test-id matching made exact (`.` boundary, parametrized ids, file and class respected): 22 tests passing.
-- SC02 proof done (handler ablation + fault injection): 27 tests passing. Only a real swallowed error proves SC02; Vaughn chose this so a blind spot alone can never BLOCK (5 Nov 2026).
-- SC01 range branches + spike probe done: 34 tests passing. Vaughn chose stdlib only over Hypothesis: a deterministic neighbour probe gives the same proof every run (5 Nov 2026).
+- SC02 proof done (handler ablation + fault injection): 27 tests passing. Only a real swallowed error proves SC02; I chose this so a blind spot alone can never BLOCK (5 Nov 2026).
+- SC01 range branches + spike probe done: 34 tests passing. I chose stdlib only over Hypothesis: a deterministic neighbour probe gives the same proof every run (5 Nov 2026).
 - Confirmed on macOS (Python 3.13): ruff clean, 34 tests, demo PASS 0 / BLOCK 2 (6 Nov 2026).
-- Calibration started (`tamperproof/calibration.py`: confusion at REVIEW/BLOCK, Wilson 95% CI, per-rule stats): 40 tests passing. Vaughn approved `pyarrow` as an optional `[calibrate]` extra only, so the audit runtime stays stdlib + pytest (6 Nov 2026).
-- Calibration pipeline built, waiting for gated dataset access: 68 tests passing (6 Nov 2026). Vaughn's choices:
+- Calibration started (`tamperproof/calibration.py`: confusion at REVIEW/BLOCK, Wilson 95% CI, per-rule stats): 40 tests passing. I approved `pyarrow` as an optional `[calibrate]` extra only, so the audit runtime stays stdlib + pytest (6 Nov 2026).
+- Calibration pipeline built, waiting for gated dataset access: 68 tests passing (6 Nov 2026). Decisions:
   - **Replay, never execute.** `replay.py` rebuilds the agent's tree from editor ops, `cat` heredocs and git restores only. Any other `.py` write marks the rollout `partial` and excludes it, so no reconstructed tree is a guess.
   - **Base = `base_commit` + altered `test_patch`** (`rebuild.py`), the sandbox as the agent found it.
   - **Static-only, stratified sample** (800 hack / 800 honest / 200 attempt / 200 other_test, ≤3 per task, seed 0) over `rollouts_truncated`. Precision is rebuilt at the population ratio from per-stratum recall and FPR; BLOCK is "not measured" until the SWE-Gym sandbox images are available.
   - Finding while building it: a single TT05 (medium, 12) is below REVIEW (15) with proofs off, so a `oneoff` hack can PASS statically. Calibration therefore also reports an `ANY` (score > 0) operating point. Weights unchanged pending the numbers.
-- GitHub Action done (roadmap 5): 79 tests passing (7 Nov 2026). Composite `action.yml` runs the audit, posts one sticky PR comment (`tamperproof/github.py`, stdlib urllib, hidden marker), uploads SARIF to code scanning, then gates. Vaughn's choices:
+- GitHub Action done (roadmap 5): 79 tests passing (7 Nov 2026). Composite `action.yml` runs the audit, posts one sticky PR comment (`tamperproof/github.py`, stdlib urllib, hidden marker), uploads SARIF to code scanning, then gates. Decisions:
   - **`fail-on: block` by default**, so REVIEW is a comment, not a red check (matches "only proven findings BLOCK").
   - **Dogfood** on this repo's PRs (`.github/workflows/tamperproof.yml`); the CI demo gate now goes through the action itself.
   - Fork PRs: comment and SARIF upload degrade to warnings; the verdict still gates.
   - SARIF fixes: `startLine` clamped to ≥ 1 (GitHub rejects 0); `informationUri` points at the repo.
   - Dogfooding PR #7 found that a *disproven* high-severity SC01 was a SARIF `error`, which fails GitHub's code-scanning check. SARIF level now follows proof status: proven `error`, suspected at most `warning`, disproven `note`.
-- Qodana notes done (roadmap 6): 83 tests passing (7 Nov 2026). `docs/QODANA.md`, `qodana.yaml`, `.github/workflows/qodana.yml`. Vaughn's choices:
+- Qodana notes done (roadmap 6): 83 tests passing (7 Nov 2026). `docs/QODANA.md`, `qodana.yaml`, `.github/workflows/qodana.yml`. Decisions:
   - **Live Qodana job** (Community for Python, no token), **advisory**: no `failThreshold`; tamperproof stays the only gate.
   - **SARIF aligned with Qodana's profile**: `tool.driver.version`, `automationDetails.id` (`tamperproof/`), `partialFingerprints["tamperproof/v1"]` (rule + file + code span, not line). No `baselineState` (base-vs-head already makes every finding new).
   - Research finding: no documented way to show non-Qodana SARIF in Qodana Cloud; code scanning is the shared view. Qodana gate exits 255; tamperproof keeps 0/1/2.
-- Kotlin/JUnit sketch done (roadmap 7): 101 tests, 2 Kotlin e2e skipped without Gradle (7 Nov 2026). Vaughn's choices:
+- Kotlin/JUnit sketch done (roadmap 7): 101 tests, 2 Kotlin e2e skipped without Gradle (7 Nov 2026). Decisions:
   - **Real Kotlin demo** (`demo/build_kotlin_demo.py`, JUnit 5, Gradle) through the unchanged oracle restoration: honest PASS, cheat BLOCK (TT03 + TT05 proven, TT01 disproven).
   - **Stand-in detector** (`kotlin_sketch.py`): tokens with strings/comments masked, not an AST, labelled as such; the real port uses UAST (`docs/KOTLIN_PORT.md`).
   - **Gradle in CI only**, nothing installed on his Mac. `TAMPERPROOF_SKIP_GRADLE=1` keeps the fast matrix fast; the `kotlin-demo` job fails if the e2e tests skip.
   - Missing Gradle returns no results (findings stay unproven, never BLOCK) instead of crashing, because a crash exits 1 and reads as REVIEW.
-  - Dogfood caught a toolchain mismatch on PR #9: the runner image's preinstalled Gradle 9.8.2 ran the Kotlin e2e inside the self-audit and they failed with Kotlin plugin 2.0.21. Vaughn chose to upgrade (Kotlin 2.4.21, CI pinned to Gradle 9.8.2) rather than skip Gradle in the dogfood run. Qodana's PEP 604 "invalid type annotation" warnings: documented only.
+  - Dogfood caught a toolchain mismatch on PR #9: the runner image's preinstalled Gradle 9.8.2 ran the Kotlin e2e inside the self-audit and they failed with Kotlin plugin 2.0.21. I chose to upgrade (Kotlin 2.4.21, CI pinned to Gradle 9.8.2) rather than skip Gradle in the dogfood run. Qodana's PEP 604 "invalid type annotation" warnings: documented only.
   - Research: `qodana.yaml` `plugins:` loads Marketplace plugins, so a tamperproof IntelliJ plugin would run inside Qodana.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
@@ -81,5 +81,6 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
 
 ## Related docs
 
-- `docs/SETUP_GUIDE.md`: Vaughn's step-by-step PyCharm + Claude Code setup
-- `docs/CLAUDE_PROJECT_INSTRUCTIONS.md`: same context formatted for a claude.ai Project (interview prep, explanations)
+- `docs/SETUP_GUIDE.md`: step-by-step PyCharm setup
+- `docs/QODANA.md`: running next to Qodana
+- `docs/KOTLIN_PORT.md`: Kotlin/JUnit port sketch
