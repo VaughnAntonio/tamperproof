@@ -1,0 +1,21 @@
+# Dogfood: tamperproof audits every PR to this repo, using the action from the PR itself.
+name: tamperproof
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write    # sticky comment
+  security-events: write  # SARIF upload to code scanning
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # base ref must exist locally
+      - uses: ./
+        with:
+          base: origin/${{ github.base_ref }}

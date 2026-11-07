@@ -64,7 +64,7 @@ def to_sarif(r: AuditResult) -> str:
         "runs": [{
             "tool": {"driver": {
                 "name": "tamperproof",
-                "informationUri": "https://example.com/tamperproof",
+                "informationUri": "https://github.com/VaughnAntonio/tamperproof",
                 "rules": [{"id": rid, "shortDescription": {"text": RULES[rid]}} for rid in used],
             }},
             "results": [{
@@ -73,7 +73,7 @@ def to_sarif(r: AuditResult) -> str:
                 "message": {"text": f"{f.message}" + (f" | PROOF: {f.proof}" if f.proof else "")},
                 "locations": [{"physicalLocation": {
                     "artifactLocation": {"uri": f.file},
-                    "region": {"startLine": f.line},
+                    "region": {"startLine": max(1, f.line)},  # GitHub rejects 0
                 }}],
                 "properties": {"proven": f.proven, "severity": f.severity},
             } for f in r.findings],

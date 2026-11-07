@@ -34,16 +34,37 @@ jobs:
       - run: pip install -e .
       - name: Build demo repo
         run: python demo/build_demo_repo.py demo_repo
-      - name: Honest branch must PASS (exit 0)
-        run: tamperproof demo_repo --base main --head agent/honest
-      - name: Cheating branch must BLOCK (exit 2)
+      # The action itself (uses: ./) is the gate under test. Comments and SARIF stay off:
+      # the findings point at files in demo_repo, not this repo.
+      - name: Audit honest branch
+        id: honest
+        uses: ./
+        with:
+          repo: demo_repo
+          base: main
+          head: agent/honest
+          comment: "false"
+          upload-sarif: "false"
+          fail-on: never
+      - name: Audit cheating branch
+        id: cheat
+        uses: ./
+        with:
+          repo: demo_repo
+          base: main
+          head: agent/cheat
+          comment: "false"
+          upload-sarif: "false"
+          fail-on: never
+      - name: Honest must PASS (0), cheat must BLOCK (2)
+        env:
+          HONEST: ${{ steps.honest.outputs.exit-code }}
+          CHEAT: ${{ steps.cheat.outputs.exit-code }}
         run: |
-          set +e
-          tamperproof demo_repo --base main --head agent/cheat --sarif cheat.sarif --md cheat.md
-          code=$?
-          set -e
-          cat cheat.md >> "$GITHUB_STEP_SUMMARY"
-          test "$code" -eq 2
+          echo "honest=$HONEST cheat=$CHEAT"
+          test "$HONEST" -eq 0 && test "$CHEAT" -eq 2
+      - name: Collect reports
+        run: cp "${{ steps.cheat.outputs.markdown }}" cheat.md && cp "${{ steps.cheat.outputs.sarif }}" cheat.sarif
       - uses: actions/upload-artifact@v4
         with:
           name: tamperproof-report
