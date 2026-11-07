@@ -48,6 +48,7 @@ tamperproof runs in two stages.
 
 ## Docs
 
+- **[Qodana integration](docs/QODANA.md)**: running next to Qodana, SARIF alignment, gaps and proposed integration
 - **[Setup guide (PyCharm)](docs/SETUP_GUIDE.md)**: prerequisites, interpreter, run configs, debugging the proof engine, Git workflow
 - **[CLAUDE.md](CLAUDE.md)** + **[project context](docs/CONTEXT.md)**: loaded automatically by Claude Code
 - **[Claude Project instructions](docs/CLAUDE_PROJECT_INSTRUCTIONS.md)**: paste into a Claude Project for an AI pair-programmer that knows this codebase
@@ -141,10 +142,12 @@ tamperproof/
   github.py        sticky PR comment (stdlib urllib)
 action.yml                composite GitHub Action: audit, PR comment, SARIF upload, gate
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
-tests/                    79 tests, including the end-to-end demo
+tests/                    83 tests, including the end-to-end demo
 .run/                     shared PyCharm run configurations
 .github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate through the action
 .github/workflows/tamperproof.yml  dogfood: the action audits this repo's own PRs
+.github/workflows/qodana.yml       Qodana Community for Python, advisory, SARIF to code scanning
+qodana.yaml               Qodana config
 ```
 
 ## Limitations and next steps
