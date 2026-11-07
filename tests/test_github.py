@@ -119,3 +119,40 @@ def test_only_proven_findings_are_sarif_errors():
     # mirroring "only a proven finding can BLOCK". Found by dogfooding PR #7.
     assert _levels(TT01=True, TT03=None, SC01=False) == {
         "TT01": "error", "TT03": "warning", "SC01": "note"}
+
+
+# ----- SARIF aligned with Qodana's profile (roadmap 6) ------------------------ #
+def _sarif(*findings):
+    return json.loads(to_sarif(AuditResult(base="b", head="h", findings=list(findings))))
+
+
+def _fingerprint(f):
+    return _sarif(f)["runs"][0]["results"][0]["partialFingerprints"]["tamperproof/v1"]
+
+
+def test_fingerprint_survives_line_shift():
+    # Code scanning matches alerts across pushes by fingerprint; a moved test is the same alert.
+    a = Finding("TT03", "high", "tests/t.py", 10, "`test_a` is now skipped/xfail")
+    b = Finding("TT03", "high", "tests/t.py", 42, "`test_a` is now skipped/xfail")
+    assert _fingerprint(a) == _fingerprint(b)
+
+
+def test_fingerprint_differs_per_test_and_rule():
+    a = Finding("TT03", "high", "tests/t.py", 10, "`test_a` is now skipped/xfail")
+    b = Finding("TT03", "high", "tests/t.py", 10, "`test_b` is now skipped/xfail")
+    c = Finding("TT01", "high", "tests/t.py", 10, "`test_a` was deleted")
+    assert len({_fingerprint(a), _fingerprint(b), _fingerprint(c)}) == 3
+
+
+def test_fingerprint_ignores_call_site_count():
+    a = Finding("BR01", "info", "src.py", 5, "`price` has 1 call site(s)")
+    b = Finding("BR01", "info", "src.py", 5, "`price` has 4 call site(s)")
+    assert _fingerprint(a) == _fingerprint(b)
+
+
+def test_sarif_has_tool_version_and_automation_id():
+    from tamperproof import __version__
+    run = _sarif(Finding("TT01", "high", "t.py", 1, "`test_a` was deleted"))["runs"][0]
+    assert run["tool"]["driver"]["version"] == __version__
+    # Matches the action's upload-sarif `category: tamperproof` (GitHub appends "/").
+    assert run["automationDetails"]["id"] == "tamperproof/"

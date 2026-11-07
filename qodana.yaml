@@ -1,0 +1,9 @@
+# Qodana Community for Python: free, no QODANA_TOKEN needed (token only views reports in Qodana Cloud).
+# Advisory here: no failThreshold, so tamperproof stays the only gate. See docs/QODANA.md.
+version: "1.0"
+linter: qodana-python-community
+exclude:
+  - name: All
+    paths:
+      - demo_repo
+      - tamperproof.egg-info
