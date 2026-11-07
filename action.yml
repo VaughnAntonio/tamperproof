@@ -1,0 +1,128 @@
+name: tamperproof
+description: Prove, don't guess, whether an AI agent's diff games the test suite. Sticky PR comment + SARIF.
+author: Vaughn Antonio
+branding:
+  icon: shield
+  color: red
+
+inputs:
+  base:
+    description: Ref before the change, e.g. origin/${{ github.base_ref }}. Needs actions/checkout with fetch-depth 0.
+    required: true
+  head:
+    description: Ref with the change.
+    default: HEAD
+  repo:
+    description: Path to the git repository to audit.
+    default: .
+  comment:
+    description: Post or update one sticky PR comment with the Markdown report.
+    default: "true"
+  upload-sarif:
+    description: Upload findings to GitHub code scanning (needs security-events write).
+    default: "true"
+  fail-on:
+    description: "When to fail the step: block (default; only proven findings), review, or never."
+    default: block
+  no-proof:
+    description: Static analysis only (no test runs). Can never BLOCK.
+    default: "false"
+  python-version:
+    description: Python used to run tamperproof and the audited tests (>= 3.11).
+    default: "3.12"
+
+outputs:
+  verdict:
+    description: PASS, REVIEW or BLOCK.
+    value: ${{ steps.audit.outputs.verdict }}
+  score:
+    description: Suspicion score, 0-100.
+    value: ${{ steps.audit.outputs.score }}
+  exit-code:
+    description: 0 PASS, 1 REVIEW, 2 BLOCK.
+    value: ${{ steps.audit.outputs.exit-code }}
+  markdown:
+    description: Path to the Markdown report.
+    value: ${{ steps.audit.outputs.markdown }}
+  sarif:
+    description: Path to the SARIF 2.1.0 report.
+    value: ${{ steps.audit.outputs.sarif }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install tamperproof
+      shell: bash
+      run: python -m pip install --quiet "$GITHUB_ACTION_PATH"
+
+    - name: Audit
+      id: audit
+      shell: bash
+      # Inputs go through env, never ${{ }} inside the script, so a ref name can't inject shell.
+      env:
+        TP_REPO: ${{ inputs.repo }}
+        TP_BASE: ${{ inputs.base }}
+        TP_HEAD: ${{ inputs.head }}
+        TP_NO_PROOF: ${{ inputs.no-proof }}
+      run: |
+        md="$RUNNER_TEMP/tamperproof.md"
+        sarif="$RUNNER_TEMP/tamperproof.sarif"
+        extra=()
+        [ "$TP_NO_PROOF" = "true" ] && extra+=(--no-proof)
+        set +e
+        tamperproof "$TP_REPO" --base "$TP_BASE" --head "$TP_HEAD" --md "$md" --sarif "$sarif" \
+          "${extra[@]}" | tee "$RUNNER_TEMP/tamperproof.txt"
+        code=${PIPESTATUS[0]}
+        set -e
+        case "$code" in
+          0) verdict=PASS ;; 1) verdict=REVIEW ;; 2) verdict=BLOCK ;;
+          *) echo "::error::tamperproof crashed (exit $code)"; exit "$code" ;;
+        esac
+        score=$(grep -oE 'suspicion score [0-9]+' "$RUNNER_TEMP/tamperproof.txt" | grep -oE '[0-9]+$')
+        cat "$md" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "verdict=$verdict"
+          echo "score=$score"
+          echo "exit-code=$code"
+          echo "markdown=$md"
+          echo "sarif=$sarif"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Sticky PR comment
+      if: inputs.comment == 'true' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: python -m tamperproof.github "${{ steps.audit.outputs.markdown }}"
+
+    - name: Upload SARIF to code scanning
+      if: inputs.upload-sarif == 'true'
+      # Fork PRs can't write security events; the verdict, not the upload, gates the job.
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.audit.outputs.sarif }}
+        category: tamperproof
+
+    - name: Gate
+      shell: bash
+      env:
+        TP_FAIL_ON: ${{ inputs.fail-on }}
+        TP_CODE: ${{ steps.audit.outputs.exit-code }}
+        TP_VERDICT: ${{ steps.audit.outputs.verdict }}
+      run: |
+        case "$TP_FAIL_ON" in
+          block)  threshold=2 ;;
+          review) threshold=1 ;;
+          never)  threshold=99 ;;
+          *) echo "::error::fail-on must be block, review or never (got '$TP_FAIL_ON')"; exit 1 ;;
+        esac
+        if [ "$TP_CODE" -ge "$threshold" ]; then
+          echo "::error::tamperproof verdict $TP_VERDICT (fail-on: $TP_FAIL_ON)"
+          exit "$TP_CODE"
+        fi
+        echo "tamperproof verdict $TP_VERDICT (fail-on: $TP_FAIL_ON)"
