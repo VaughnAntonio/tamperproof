@@ -12,10 +12,10 @@ Existing cheat detectors flag suspicious patterns, but a flag is only a hint. In
 
 Why it matters:
 
-- **"Our 2026 Direction: AI and Classic Workflows"** commits to treating AI-generated code with the same scrutiny as human code, and keeping changes visible and reversible.
+- **Teams shipping agent-written code** need to hold it to the same bar as human code. A green tick should mean the bug is fixed, not that the tests were bent.
 - **Agent platforms already run changes in sandboxes**, so the runtime experiments below add little extra cost.
 - **Coding-agent benchmarks and evals** use test outcomes as the success signal. A benchmark is only as honest as its tests.
-- **Qodana** consumes SARIF, so tamperproof findings drop straight into existing pipelines.
+- **It fits existing pipelines.** Findings are emitted as SARIF 2.1.0, so GitHub code scanning, Qodana and other SARIF-aware tools pick them up as-is.
 
 ## The idea: static suspicion → runtime proof
 
