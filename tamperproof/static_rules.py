@@ -129,6 +129,34 @@ def _compare_parts(a: ast.AST) -> tuple[str, str] | None:
     return None
 
 
+def _is_literal(n: ast.AST) -> bool:
+    try:
+        ast.literal_eval(n)
+        return True
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+        return False
+
+
+def _call_parts(a: ast.AST, src: str) -> tuple[str, str] | None:
+    """For `self.assertEqual(x, 3)` or `assert np.allclose(x, 3)` return
+    ("self.assertEqual(x)", "3"): the call with its expressions, and its expected values.
+
+    Expected values are the literal arguments, wherever they sit (`assertEqual(3, x)` too).
+    With no literal, the first argument is the subject and the rest are the expectation.
+    """
+    call = a.test if isinstance(a, ast.Assert) else a
+    if not isinstance(call, ast.Call) or not call.args:
+        return None
+    subject = [n for n in call.args if not _is_literal(n)]
+    expected = [n for n in call.args if _is_literal(n)]
+    if not expected:
+        subject, expected = call.args[:1], call.args[1:]
+    if not expected:
+        return None
+    text = [" ".join((ast.get_source_segment(src, n) or ast.unparse(n)).split()) for n in expected]
+    return f"{ast.unparse(call.func)}({', '.join(map(ast.unparse, subject))})", ", ".join(text)
+
+
 def _max_tolerance(fn: ast.AST) -> float:
     best = 0.0
     for n in ast.walk(fn):
@@ -164,9 +192,9 @@ def diff_tests(path: str, before: str | None, after: str | None) -> list[Finding
                 out.append(Finding("TT04", "high", path, a.lineno,
                                    f"`{ast.unparse(a)}` in `{name}` can never fail", data))
 
-        old_parts = {p[0]: p[1] for a in a_old if (p := _compare_parts(a))}
+        old_parts = {p[0]: p[1] for a in a_old if (p := _compare_parts(a) or _call_parts(a, before))}
         for a in a_new:
-            p = _compare_parts(a)
+            p = _compare_parts(a) or _call_parts(a, after)
             if p and p[0] in old_parts and old_parts[p[0]] != p[1]:
                 if "approx(" in p[1] and "approx(" in old_parts[p[0]]:
                     continue  # tolerance-only change, reported once as TT06
