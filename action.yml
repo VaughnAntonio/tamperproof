@@ -40,7 +40,7 @@ outputs:
     description: Suspicion score, 0-100.
     value: ${{ steps.audit.outputs.score }}
   exit-code:
-    description: 0 PASS, 1 REVIEW, 2 BLOCK.
+    description: 0 PASS, 1 REVIEW, 2 BLOCK (3 = crashed; the step fails).
     value: ${{ steps.audit.outputs.exit-code }}
   markdown:
     description: Path to the Markdown report.
@@ -94,7 +94,8 @@ runs:
         } >> "$GITHUB_OUTPUT"
 
     - name: Sticky PR comment
-      if: inputs.comment == 'true' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
+      # pull_request only: under pull_request_target the proof stage would run a fork's code with a write token.
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}

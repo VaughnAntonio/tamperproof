@@ -2,7 +2,7 @@
 
 A loose match lets one test's outcome prove or disprove a finding about a
 different test, and missing parametrized ids leaves findings unproven.
-Result ids have the form `<classname>.<name>`, as built by `run_pytest`.
+Result ids have the form `<classname>.<name>`, as built by `runners.parse_junit_xml`.
 """
 
 from __future__ import annotations

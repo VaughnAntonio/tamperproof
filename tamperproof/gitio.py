@@ -9,8 +9,11 @@ from pathlib import Path
 
 
 def git(repo: str | Path, *args: str) -> str:
+    # quotePath=false: by default git prints `"test_caf\303\251.py"` for non-ASCII names, which
+    # matches no suffix and no path, so tampering in such a file would go unseen.
     return subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=True
+        ["git", "-c", "core.quotePath=false", "-C", str(repo), *args],
+        capture_output=True, text=True, check=True,
     ).stdout
 
 
@@ -50,8 +53,31 @@ def read_at(repo: str | Path, ref: str, path: str | None) -> str | None:
 
 
 def all_py_files(repo: str | Path, ref: str) -> dict[str, str]:
-    names = git(repo, "ls-tree", "-r", "--name-only", ref).splitlines()
-    return {n: read_at(repo, ref, n) or "" for n in names if n.endswith(".py")}
+    """Every .py file at `ref`, read through one `git cat-file --batch` process.
+
+    One `git show` per file meant ~2,700 processes per audit on a repo like django.
+    """
+    paths: dict[str, list[str]] = {}  # blob sha -> paths (identical files share one blob)
+    for line in git(repo, "ls-tree", "-r", ref).splitlines():
+        meta, path = line.split("\t", 1)
+        _mode, kind, sha = meta.split()
+        if kind == "blob" and path.endswith(".py"):
+            paths.setdefault(sha, []).append(path)
+    out = subprocess.run(["git", "-C", str(repo), "cat-file", "--batch"],
+                         input="".join(f"{sha}\n" for sha in paths).encode(),
+                         capture_output=True, check=True).stdout
+    files, pos = {}, 0
+    while pos < len(out):
+        end = out.index(b"\n", pos)
+        header = out[pos:end].decode().split()  # "<sha> blob <size>" or "<sha> missing"
+        pos = end + 1
+        if header[1] == "missing":
+            continue
+        size = int(header[2])
+        text = out[pos:pos + size].decode("utf-8", errors="replace")
+        files.update(dict.fromkeys(paths[header[0]], text))
+        pos += size + 1  # content is followed by one newline
+    return files
 
 
 def export_tree(repo: str | Path, ref: str, dest: str | Path) -> Path:

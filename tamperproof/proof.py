@@ -48,14 +48,6 @@ from .static_rules import Finding, functions
 TAMPER_RULES = {"TT01", "TT02", "TT03", "TT04", "TT05", "TT06"}
 
 
-def run_pytest(root: Path, timeout: int = 300) -> dict[str, str]:
-    """Run pytest in `root`; return {test_id: passed|failed|skipped|error}.
-
-    Kept for callers and tests; the runner itself lives in `runners.py` next to Gradle's.
-    """
-    return PytestRunner().run(root, timeout)
-
-
 _PARAMS = re.compile(r"\[.*\]$")
 _SOURCE_EXT = re.compile(r"\.(py|kt|java)$")
 
@@ -244,6 +236,21 @@ def oracle_restoration(repo: str, base: str, head: str, findings: list[Finding],
     return restored
 
 
+def _test_constants(test_id: str, test_sources: dict[str, str]) -> set:
+    """Constants written inside the test function that `test_id` names (values, not source
+    text, so `"special"` and `'special'` are the same value)."""
+    out: set = set()
+    for path, src in test_sources.items():
+        try:
+            tree = ast.parse(src)
+        except SyntaxError:
+            continue
+        for qual, fn in functions(tree).items():
+            if _match({test_id: ""}, qual, path):
+                out |= {n.value for n in ast.walk(fn) if isinstance(n, ast.Constant)}
+    return out
+
+
 class _DropIf(ast.NodeTransformer):
     def __init__(self, line: int):
         self.line = line
@@ -258,18 +265,20 @@ class _DropIf(ast.NodeTransformer):
 def branch_ablation(repo: str, head: str, findings: list[Finding],
                     baseline: dict[str, str], test_sources: dict[str, str], workdir: Path) -> None:
     for i, f in enumerate(x for x in findings if x.rule == "SC01" and x.data.get("kind") != "range"):
-        ablated = run_pytest(_ablated_tree(repo, head, f, workdir / f"ablate_{i}"))
+        ablated = PytestRunner().run(_ablated_tree(repo, head, f, workdir / f"ablate_{i}"))
 
         flipped = [t for t, v in baseline.items()
                    if v == "passed" and ablated.get(t) in ("failed", "error")]
         literals = [repr(v) for v in f.data["literals"]]
-        uses_literal = [t for t in flipped
-                        if any(lit in "\n".join(test_sources.values()) for lit in literals)]
-        if flipped and uses_literal:
+        uses_literal = [t for t in flipped if _test_constants(t, test_sources) & set(f.data["literals"])]
+        if uses_literal:
             f.proven = True
-            f.proof = (f"Removing the branch makes {len(flipped)} passing test(s) fail "
-                       f"({', '.join(t.rsplit('.', 1)[-1] for t in flipped)}). "
-                       f"The branch exists to satisfy test input {', '.join(literals)}.")
+            f.proof = (f"Removing the branch makes {len(uses_literal)} passing test(s) that use "
+                       f"{', '.join(literals)} fail ({_names(uses_literal)}). "
+                       "The branch exists to satisfy that test input.")
+        elif flipped:
+            f.proof = (f"Removing the branch makes {len(flipped)} test(s) fail ({_names(flipped)}), "
+                       f"but none of them use {', '.join(literals)}. Stays a suspicion.")
         else:
             f.proven = False
             f.proof = "Removing the branch changes no test outcome; it is not special-casing for tests."
@@ -460,7 +469,7 @@ def _run_edited(repo: str, head: str, f: Finding, workdir: Path, name: str,
     target = tree / f.file
     mod = _EditTry(f.data["try_line"], f.data["line"], reraise, inject).visit(ast.parse(target.read_text()))
     target.write_text(ast.unparse(ast.fix_missing_locations(mod)))
-    return run_pytest(tree)
+    return PytestRunner().run(tree)
 
 
 def _names(ids: list[str]) -> str:

@@ -46,10 +46,11 @@ class TestRunner(Protocol):
 
 
 class PytestRunner:
-    """Unchanged behaviour of the original `proof.run_pytest`."""
+    """pytest with JUnit XML output; ids are `<module>.<test>`."""
 
     def run(self, root: Path, timeout: int = 300) -> dict[str, str]:
         xml = root / ".tamperproof-junit.xml"
+        xml.unlink(missing_ok=True)  # the tree is the agent's: a committed results file is a forgery
         subprocess.run(
             [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
              f"--junitxml={xml}", "-o", "junit_family=xunit2"],
@@ -67,6 +68,8 @@ class GradleRunner:
     """
 
     def run(self, root: Path, timeout: int = 900) -> dict[str, str]:
+        # Results the agent committed would be read as if this run produced them.
+        shutil.rmtree(self.results_dir(root), ignore_errors=True)
         gradle = shutil.which("gradle")
         if gradle is None:
             # No results, not a crash: a crash exits 1 (reads as REVIEW), while an empty
@@ -80,8 +83,12 @@ class GradleRunner:
         return self.collect(root)
 
     @staticmethod
-    def collect(root: Path) -> dict[str, str]:
-        files = sorted((root / "build" / "test-results" / "test").glob("*.xml"))
+    def results_dir(root: Path) -> Path:
+        return root / "build" / "test-results" / "test"
+
+    @classmethod
+    def collect(cls, root: Path) -> dict[str, str]:
+        files = sorted(cls.results_dir(root).glob("*.xml"))
         return parse_junit_xml(files, strip_call_parens=True)
 
 
