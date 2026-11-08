@@ -72,7 +72,8 @@ def to_markdown(r: AuditResult) -> str:
     for f in r.findings:
         if f.severity == "info":
             continue
-        md.append(f"| {_tag(f)} | {f.rule} {f.title} | `{f.file}:{f.line}` | {f.message} |")
+        cell = f.message.replace("|", "\\|")  # agent code like `a | b` would split the row
+        md.append(f"| {_tag(f)} | {f.rule} {f.title} | `{f.file}:{f.line}` | {cell} |")
     proven = [f for f in r.findings if f.proven]
     if proven:
         md += ["", "### Runtime proof"]

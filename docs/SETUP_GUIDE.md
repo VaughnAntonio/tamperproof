@@ -130,7 +130,7 @@ pytest --cov=tamperproof --cov-report=term-missing
 ## 6. Debug the proof engine (do this once, it's how you'll really understand the project)
 
 1. Build the demo repo first (config **1**).
-2. Open `tamperproof/proof.py`. In `oracle_restoration`, click the gutter next to the line **after** `restored = run_pytest(tree)` to set a red breakpoint (`Ctrl+F8` / `Cmd+F8`).
+2. Open `tamperproof/proof.py`. In `oracle_restoration`, click the gutter next to the line **after** `restored = (runner or PytestRunner()).run(tree)` to set a red breakpoint (`Ctrl+F8` / `Cmd+F8`).
 3. Set a second breakpoint in `branch_ablation` on the line after `flipped = [...]`.
 4. Select config **3 Audit cheat branch** and click **Debug** 🐞 (`Shift+F9` / `Ctrl+D`).
 5. When it stops, look at the **Debug** tool window → **Variables**:

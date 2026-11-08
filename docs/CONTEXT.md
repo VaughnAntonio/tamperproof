@@ -69,6 +69,13 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
   - Missing Gradle returns no results (findings stay unproven, never BLOCK) instead of crashing, because a crash exits 1 and reads as REVIEW.
   - Dogfood caught a toolchain mismatch on PR #9: the runner image's preinstalled Gradle 9.8.2 ran the Kotlin e2e inside the self-audit and they failed with Kotlin plugin 2.0.21. I chose to upgrade (Kotlin 2.4.21, CI pinned to Gradle 9.8.2) rather than skip Gradle in the dogfood run. Qodana's PEP 604 "invalid type annotation" warnings: documented only.
   - Research: `qodana.yaml` `plugins:` loads Marketplace plugins, so a tamperproof IntelliJ plugin would run inside Qodana.
+- Hostile-agent fixes from a whole-repo audit: 108 tests passing (8 Nov 2026). The agent's tree is treated as an adversary. Decisions:
+  - **Results files are deleted before each run** (pytest XML, Gradle `build/test-results`): a committed "passed" file used to be read as the real run.
+  - **Exit 3 on crash.** Python's crash code 1 read as REVIEW and passed a `fail-on: block` gate, so one hanging test could dodge a BLOCK. Verdict codes 0/1/2 are unchanged.
+  - **`core.quotePath=false`**: a test file named `test_café.py` was invisible to the audit.
+  - **SC01 proof compares values in the flipped test itself.** Before, `repr()` text search cleared every double-quoted string special-case, and any test anywhere "using" the value let an unrelated failure prove it. A flip in a test that never uses the value now stays a suspicion.
+  - **`pull_request` only** in the action; `pull_request_target` would run fork code with a write token.
+  - Speed: one `git cat-file --batch` instead of a `git show` per file, and call sites counted once per audit.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
 ## Known limitations (say these in interviews)
