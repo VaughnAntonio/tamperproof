@@ -10,12 +10,12 @@ Either way, CI shows a green tick. A reviewer has to spot the difference by read
 
 Existing cheat detectors flag suspicious patterns, but a flag is only a hint. In a study of 327 agent-written PRs, the author of one such auditor reports that none of his detectors could be trusted to block on its own, because a pattern match is not proof. So detectors stay advisory, and the reviewer is back to reading diffs.
 
-This matters directly to JetBrains:
+Why it matters:
 
-- **"Our 2026 Direction: AI and Classic Workflows"** commits to treating AI-generated code with the same scrutiny as human code, and keeping changes visible and reversible.
-- **"How Cloud-Based Agent Sandboxing Works in Air"** (Oct 2026) means every agent change already runs in a sandbox, so the runtime experiments below cost almost nothing extra.
-- **"Coding-Agent Benchmarks Should Match Their Users' Task Flows"** (JetBrains Research, Oct 2026) depends on test outcomes as the success signal. A benchmark is only as honest as its tests.
-- **Qodana** consumes SARIF, so tamperproof findings drop straight into existing pipelines.
+- **Teams shipping agent-written code** need to hold it to the same bar as human code. A green tick should mean the bug is fixed, not that the tests were bent.
+- **Agent platforms already run changes in sandboxes**, so the runtime experiments below add little extra cost.
+- **Coding-agent benchmarks and evals** use test outcomes as the success signal. A benchmark is only as honest as its tests.
+- **It fits existing pipelines.** Findings are emitted as SARIF 2.1.0, so GitHub code scanning, Qodana and other SARIF-aware tools pick them up as-is.
 
 ## The idea: static suspicion → runtime proof
 
@@ -159,5 +159,5 @@ qodana.yaml               Qodana config
 - Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
 - SC01 covers equality and range branches on numeric inputs. The spike probe needs a test that calls the function with the value as a plain literal, and only probes module-level functions; special-casing via dict lookups or string matching isn't covered.
 - SC02 is proven only when re-raising in the handler breaks a passing test (a real error was swallowed). Fault injection can clear it, but a suite that is merely blind to the block stays a suspicion: an honest fallback handler looks the same, and a blind spot must not BLOCK.
-- Plug into JetBrains Air as a post-run check, so the agent sees a `BLOCK` with proof and must retry *before* a human reviews.
+- Plug into coding-agent platforms as a post-run check, so the agent sees a `BLOCK` with proof and must retry *before* a human reviews.
 - Calibrate on real agent PR datasets (for example `AlignmentResearch/impossible-swe-nemotron-rollouts`) and report precision/recall of proven vs suspected.
