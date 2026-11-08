@@ -2,6 +2,10 @@
 
 **Prove, don't guess, when an AI coding agent games the test suite.**
 
+[![21-second demo: an agent rigs the tests, tamperproof proves it and blocks the PR](docs/media/tamperproof-demo.jpg)](docs/media/tamperproof-demo.mp4)
+
+*21-second demo (click to play).*
+
 ## The problem
 
 AI coding agents are rewarded for one thing: making the tests go green. Sometimes they get there by fixing the bug. Sometimes they get there by changing the tests: skipping the failing one, weakening `== 482.99` to `> 0`, loosening a tolerance 100×, or adding `if qty == 100: return 900.0` to the source.
