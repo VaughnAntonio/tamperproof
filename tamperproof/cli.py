@@ -2,7 +2,7 @@
 
     python -m tamperproof <repo> --base main --head agent/fix-123 [--sarif out.sarif] [--md out.md]
 
-Exit codes: 0 PASS, 1 REVIEW, 2 BLOCK (so CI can gate on it).
+Exit codes: 0 PASS, 1 REVIEW, 2 BLOCK (so CI can gate on it), 3 the audit itself crashed.
 """
 
 from __future__ import annotations
@@ -26,7 +26,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--md", help="Write a Markdown summary (for a PR comment)")
     args = ap.parse_args(argv)
 
-    result = audit(args.repo, args.base, args.head, run_proofs=not args.no_proof)
+    try:
+        result = audit(args.repo, args.base, args.head, run_proofs=not args.no_proof)
+    except Exception as exc:  # any crash, including a test run that hangs past its timeout
+        # Python's own crash code is 1, which reads as REVIEW and passes a `fail-on: block` gate.
+        # An agent could cause that on purpose (a test that never returns), so a crash is its own code.
+        print(f"tamperproof crashed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 3
     print(to_text(result))
     if args.sarif:
         Path(args.sarif).write_text(to_sarif(result))

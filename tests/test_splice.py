@@ -12,7 +12,8 @@ import subprocess
 import textwrap
 from pathlib import Path
 
-from tamperproof.proof import oracle_restoration, run_pytest, splice_tests
+from tamperproof.proof import oracle_restoration, splice_tests
+from tamperproof.runners import PytestRunner
 from tamperproof.static_rules import diff_tests
 
 
@@ -170,7 +171,7 @@ def test_oracle_keeps_agent_new_test(tmp_path):
     assert any(f.rule == "TT05" for f in findings)
     work = tmp_path / "work"
     from tamperproof import gitio
-    baseline = run_pytest(gitio.export_tree(str(repo), "agent", work / "head"))
+    baseline = PytestRunner().run(gitio.export_tree(str(repo), "agent", work / "head"))
 
     restored = oracle_restoration(str(repo), "main", "agent", findings, baseline, work)
 

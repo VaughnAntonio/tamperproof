@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 
 SEVERITY_WEIGHT = {"high": 30, "medium": 12, "low": 4, "info": 0}
@@ -111,10 +112,8 @@ def _is_trivial(a: ast.AST) -> bool:
         return any(isinstance(v, ast.Constant) and v.value for v in t.values)
     if isinstance(t, ast.Compare) and len(t.ops) == 1 and isinstance(t.ops[0], ast.Eq):
         return ast.unparse(t.left) == ast.unparse(t.comparators[0])
-    if isinstance(t, ast.Compare) and isinstance(t.ops[0], (ast.Gt, ast.GtE, ast.IsNot)):
-        # `assert result > 0` / `is not None` replacing an exact check is weak, not trivial;
-        # handled by TT05 when it replaces an equality on the same expression.
-        return False
+    # `assert result > 0` / `is not None` replacing an exact check is weak, not trivial;
+    # TT05 reports it when it replaces an equality on the same expression.
     return False
 
 
@@ -315,26 +314,31 @@ def changed_functions(before: str | None, after: str | None) -> dict[str, ast.Fu
             if k not in f_old or ast.unparse(v) != ast.unparse(f_old[k])}
 
 
+def call_counts(all_sources: dict[str, str]) -> Counter:
+    """How often each name is called across the non-test sources. Parse the repo once per
+    audit, not once per changed file."""
+    counts: Counter = Counter()
+    for p, s in all_sources.items():
+        tree = None if is_test_file(p) else _parse(s)
+        if tree is None:
+            continue
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Call):
+                f = n.func
+                counts[f.id if isinstance(f, ast.Name) else getattr(f, "attr", None)] += 1
+    return counts
+
+
 def coverage_and_blast(path: str, changed: dict[str, ast.FunctionDef],
-                       test_text: str, all_sources: dict[str, str]) -> list[Finding]:
+                       test_text: str, calls: Counter) -> list[Finding]:
     out = []
-    trees = {p: _parse(s) for p, s in all_sources.items() if not is_test_file(p)}
     for qual, fn in changed.items():
         short = qual.rsplit(".", 1)[-1]
         if short.startswith("_"):
             continue
         if not re.search(rf"\b{re.escape(short)}\b", test_text):
             out.append(Finding("COV01", "medium", path, fn.lineno, f"`{qual}` changed but no test calls it"))
-        callers = 0
-        for tree in trees.values():
-            if tree is None:
-                continue
-            for n in ast.walk(tree):
-                if isinstance(n, ast.Call):
-                    f = n.func
-                    name = f.id if isinstance(f, ast.Name) else getattr(f, "attr", None)
-                    if name == short:
-                        callers += 1
+        callers = calls[short]
         if callers >= 5:
             out.append(Finding("BR01", "low", path, fn.lineno, f"`{qual}` has {callers} call sites"))
         elif callers:

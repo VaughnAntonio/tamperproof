@@ -43,7 +43,7 @@ def find_comment(comments: list[dict]) -> int | None:
 
 
 def pr_number(event: dict) -> int | None:
-    """PR number from a `pull_request` / `pull_request_target` event payload."""
+    """PR number from a `pull_request` event payload (never `pull_request_target`: see README)."""
     pr = event.get("pull_request")
     return pr["number"] if pr else None
 

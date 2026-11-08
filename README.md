@@ -89,7 +89,7 @@ Verdict: BLOCK   suspicion score 100/100
 
 Note the **disproven** lines. The agent deleted `test_large_order` and loosened a tolerance, which a pattern-only tool would flag. Running the experiments shows neither edit hid a failure, so neither counts toward the block. That is what makes an automatic `BLOCK` defensible.
 
-Exit codes are `0` PASS, `1` REVIEW, `2` BLOCK, so CI can gate on them.
+Exit codes are `0` PASS, `1` REVIEW, `2` BLOCK, so CI can gate on them. `3` means the audit itself crashed (bad ref, a test run past its timeout); the action fails on it, so a crash never passes as REVIEW.
 
 ## GitHub Action
 
@@ -126,6 +126,8 @@ jobs:
 | `python-version` | `3.12` | Python for tamperproof and the audited tests |
 
 Outputs: `verdict`, `score`, `exit-code`, `markdown`, `sarif`. The report also goes to the job summary.
+
+Use `pull_request`, never `pull_request_target`: the proof stage runs the PR's tests, and `pull_request_target` would run a fork's code with a write token and your secrets.
 
 Limits: PRs from forks get a read-only token, so the comment and the SARIF upload are skipped with a warning (the verdict still gates). Proof runs execute the test suite several times, so they cost CI minutes; `no-proof: true` is the cheap advisory mode.
 

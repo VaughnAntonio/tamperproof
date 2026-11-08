@@ -12,7 +12,13 @@ from build_demo_repo import build  # noqa: E402
 
 from tamperproof import audit  # noqa: E402
 from tamperproof.report import to_sarif  # noqa: E402
-from tamperproof.static_rules import diff_source, diff_tests  # noqa: E402
+from tamperproof.static_rules import (  # noqa: E402
+    call_counts,
+    changed_functions,
+    coverage_and_blast,
+    diff_source,
+    diff_tests,
+)
 
 
 @pytest.fixture(scope="module")
@@ -86,3 +92,20 @@ def test_sarif_is_valid_shape(cheat):
     assert s["version"] == "2.1.0"
     assert s["runs"][0]["properties"]["verdict"] == "BLOCK"
     assert all("ruleId" in r for r in s["runs"][0]["results"])
+
+
+def test_coverage_and_blast_radius():
+    old = "def price(q):\n    return q\n\ndef ship(w):\n    return w\n"
+    new = "def price(q):\n    return q * 2\n\ndef ship(w):\n    return w + 1\n"
+    sources = {"shop.py": new,
+               "cart.py": "from shop import price\n" + "price(1)\n" * 5,
+               "one.py": "import shop\nshop.ship(1)\n",
+               "test_shop.py": "from shop import price\nprice(9)\n"}
+    found = {(f.rule, f.severity, f.message) for f in
+             coverage_and_blast("shop.py", changed_functions(old, new), sources["test_shop.py"],
+                                call_counts(sources))}
+    assert found == {
+        ("BR01", "low", "`price` has 5 call sites"),
+        ("COV01", "medium", "`ship` changed but no test calls it"),
+        ("BR01", "info", "`ship` has 1 call site(s)"),
+    }

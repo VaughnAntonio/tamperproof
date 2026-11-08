@@ -10,6 +10,7 @@ from .runners import runner_for
 from .static_rules import (
     SEVERITY_WEIGHT,
     Finding,
+    call_counts,
     changed_functions,
     coverage_and_blast,
     diff_source,
@@ -55,6 +56,7 @@ def audit(repo: str, base: str, head: str = "HEAD", run_proofs: bool = True) -> 
     head_tests = {p: s for p, s in head_sources.items() if is_test_file(p)}
     lits = test_literals(head_tests)
     test_text = "\n".join(head_tests.values())
+    calls = call_counts(head_sources)
 
     findings: list[Finding] = []
     for _status, old, new in changes:
@@ -65,7 +67,7 @@ def audit(repo: str, base: str, head: str = "HEAD", run_proofs: bool = True) -> 
             findings += diff_tests(path, before, after)
         else:
             findings += diff_source(path, before, after, lits)
-            findings += coverage_and_blast(path, changed_functions(before, after), test_text, head_sources)
+            findings += coverage_and_blast(path, changed_functions(before, after), test_text, calls)
 
     # Kotlin/JUnit sketch (roadmap 7): stand-in detector for test files only; see kotlin_sketch.py.
     for _status, old, new in gitio.changed_files(repo, base, head, (".kt",)):
