@@ -4,7 +4,7 @@
 
 [![21-second demo: an agent rigs the tests, tamperproof proves it and blocks the PR](docs/media/tamperproof-demo.jpg)](docs/media/tamperproof-demo.mp4)
 
-*21-second demo (click to play).*
+*21-second demo (Downloadable).*
 
 ## The problem
 
