@@ -76,6 +76,11 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
   - **SC01 proof compares values in the flipped test itself.** Before, `repr()` text search cleared every double-quoted string special-case, and any test anywhere "using" the value let an unrelated failure prove it. A flip in a test that never uses the value now stays a suspicion.
   - **`pull_request` only** in the action; `pull_request_target` would run fork code with a write token.
   - Speed: one `git cat-file --batch` instead of a `git show` per file, and call sites counted once per audit.
+- Free gold-patch calibration (`tamperproof/gold.py`, `docs/CALIBRATION.md`): 120 tests passing (9 Nov 2026). The gated rollouts are still 403 and the public 144-rollout release ships no tool-call content, so nothing is replayable. Decisions:
+  - **No model, no key, no Docker.** Honest = the maintainers' fix on the original tests; cheats = revert, delete, skip of the changed test on the impossible tests, built by script. I chose this over a paid gpt-5-mini pilot (~$9).
+  - **Static only**, so BLOCK is not measured. All 349 tasks: 14.0% honest diffs reach REVIEW (mostly `BR01`, `COV01`); delete/skip ~99%.
+  - The run found TT05 missed expected values inside calls (`self.assertEqual(x, 0o755)`). Fixed: revert REVIEW 44.1% to 73.4%, honest unchanged.
+  - Still open: one TT05 (12) is below REVIEW (15), so 31 reverts PASS. Weights unchanged; my call.
 - Repo: `github.com/VaughnAntonio/tamperproof`.
 
 ## Known limitations (say these in interviews)
@@ -84,10 +89,11 @@ The pricing module has a tier-boundary bug (`>` instead of `>=`).
 - Oracle restoration reverts only the flagged test functions (plus base imports and helpers they need). Fixtures in `conftest.py`, module-level setup and unflagged tests stay in the agent's version, so a tamper hidden there is not undone. If a clean splice is impossible, it falls back to the whole file and says so.
 - SC01 covers equality and numeric range branches; the range probe needs a literal call in the tests and a module-level function
 - SC02 is proven only by a real swallowed error during the tests. A suite that can't see the block stays suspected, never BLOCK
-- No calibration on real agent data yet, so no precision/recall numbers
+- Calibrated only on human fixes and scripted cheats, statically (`docs/CALIBRATION.md`); no real-agent precision/recall and no BLOCK rate yet
 
 ## Related docs
 
 - `docs/SETUP_GUIDE.md`: step-by-step PyCharm setup
 - `docs/QODANA.md`: running next to Qodana
+- `docs/CALIBRATION.md`: gold-patch calibration results
 - `docs/KOTLIN_PORT.md`: Kotlin/JUnit port sketch
