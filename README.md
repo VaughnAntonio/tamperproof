@@ -8,11 +8,9 @@
 
 ## The problem
 
-AI coding agents are rewarded for one thing: making the tests go green. Sometimes they get there by fixing the bug. Sometimes they get there by changing the tests: skipping the failing one, weakening `== 482.99` to `> 0`, loosening a tolerance 100×, or adding `if qty == 100: return 900.0` to the source.
+AI coding agents are judged on one thing: making the tests pass. Sometimes they fix the bug. Sometimes they cheat: they skip the test, make it easier to pass, or hard-code the expected answer.
 
-Either way, CI shows a green tick. A reviewer has to spot the difference by reading the diff.
-
-Existing cheat detectors flag suspicious patterns, but a flag is only a hint. In a study of 327 agent-written PRs, the author of one such auditor reports that none of his detectors could be trusted to block on its own, because a pattern match is not proof. So detectors stay advisory, and the reviewer is back to reading diffs.
+Both show the same green tick. Today's detectors only flag code that looks suspicious, and a flag isn't proof. So a human still has to read every change.
 
 Why it matters:
 
