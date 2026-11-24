@@ -121,7 +121,7 @@ def test_only_proven_findings_are_sarif_errors():
         "TT01": "error", "TT03": "warning", "SC01": "note"}
 
 
-# ----- SARIF aligned with Qodana's profile ------------------------ #
+# ----- SARIF aligned with Qodana's profile ------------------------------------ #
 def _sarif(*findings):
     return json.loads(to_sarif(AuditResult(base="b", head="h", findings=list(findings))))
 

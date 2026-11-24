@@ -22,3 +22,6 @@ calibration_results.jsonl
 gold/
 gold*.jsonl
 gold*.md
+
+# macOS
+.DS_Store

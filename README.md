@@ -50,10 +50,11 @@ tamperproof runs in two stages.
 
 ## Docs
 
-- **[Kotlin/JUnit port sketch](docs/KOTLIN_PORT.md)**: the proof engine on Kotlin via Gradle (built), and the UAST/IntelliJ plugin route (proposed)
-- **[Qodana integration](docs/QODANA.md)**: running next to Qodana, SARIF alignment, gaps and proposed integration
-- **[Setup guide (PyCharm)](docs/SETUP_GUIDE.md)**: prerequisites, interpreter, run configs, debugging the proof engine, Git workflow
-- **[Project context](docs/CONTEXT.md)**: why the project exists, design decisions and status
+- **[Design notes](docs/DESIGN.md)**: why it works this way, decisions, limitations
+- **[Calibration](docs/CALIBRATION.md)**: false-positive and recall numbers on all 349 Impossible-SWEbench tasks
+- **[Development guide](docs/DEVELOPMENT.md)**: install, demo, tests, debugging the proof engine
+- **[Qodana integration](docs/QODANA.md)**: running next to Qodana, SARIF alignment, gaps
+- **[Kotlin/JUnit port](docs/KOTLIN_PORT.md)**: the proof engine on Kotlin via Gradle (built), and the UAST route (proposed)
 
 ## Demo
 
@@ -149,8 +150,8 @@ tamperproof/
 action.yml                composite GitHub Action: audit, PR comment, SARIF upload, gate
 demo/build_demo_repo.py   reproducible honest-vs-cheat scenario
 demo/build_kotlin_demo.py same scenario in Kotlin/JUnit 5 (Gradle)
-tests/                    101 tests, including the Python and Kotlin end-to-end demos
-.run/                     shared PyCharm run configurations
+tests/                    122 tests, including the Python and Kotlin end-to-end demos
+.run/                     shared IDE run configurations (PyCharm)
 .github/workflows/ci.yml  lint + tests on 3.11-3.13 + honest/cheat demo gate through the action + Kotlin demo via Gradle
 .github/workflows/tamperproof.yml  dogfood: the action audits this repo's own PRs
 .github/workflows/qodana.yml       Qodana Community for Python, advisory, SARIF to code scanning

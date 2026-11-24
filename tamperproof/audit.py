@@ -69,7 +69,7 @@ def audit(repo: str, base: str, head: str = "HEAD", run_proofs: bool = True) -> 
             findings += diff_source(path, before, after, lits)
             findings += coverage_and_blast(path, changed_functions(before, after), test_text, calls)
 
-    # Kotlin/JUnit sketch: stand-in detector for test files only; see kotlin_sketch.py.
+    # Kotlin/JUnit: stand-in detector for test files only; see kotlin_sketch.py.
     for _status, old, new in gitio.changed_files(repo, base, head, (".kt",)):
         path = new or old
         if is_kotlin_test_file(path):

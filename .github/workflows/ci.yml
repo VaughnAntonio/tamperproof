@@ -75,7 +75,7 @@ jobs:
             cheat.md
 
   kotlin-demo:
-    # the same proof engine on Kotlin/JUnit 5 via Gradle.
+    # The same proof engine on Kotlin/JUnit 5 via Gradle.
     runs-on: ubuntu-latest
     needs: test
     steps:
