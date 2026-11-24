@@ -1,4 +1,4 @@
-# tamperproof
+# Tamperproof
 
 **Prove, don't guess, when an AI coding agent games the test suite.**
 
